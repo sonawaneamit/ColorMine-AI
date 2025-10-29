@@ -41,11 +41,24 @@ struct ScanView: View {
                                 .foregroundColor(.secondary)
                         }
                     } else {
-                        Button("Analyze Colors") {
-                            analyzeImage()
+                        VStack(spacing: 16) {
+                            Button("Analyze Colors") {
+                                analyzeImage()
+                            }
+                            .buttonStyle(PrimaryButtonStyle())
+                            .padding(.horizontal, 40)
+
+                            Button(action: {
+                                retakePhoto()
+                            }) {
+                                HStack {
+                                    Image(systemName: "arrow.counterclockwise")
+                                    Text("Retake Photo")
+                                }
+                            }
+                            .buttonStyle(SecondaryButtonStyle())
+                            .padding(.horizontal, 40)
                         }
-                        .buttonStyle(PrimaryButtonStyle())
-                        .padding(.horizontal, 40)
                     }
                 } else {
                     // Show instructions
@@ -125,6 +138,12 @@ struct ScanView: View {
         }
     }
 
+    // MARK: - Retake Photo
+    private func retakePhoto() {
+        capturedImage = nil
+        errorMessage = nil
+    }
+
     // MARK: - Analyze Image
     private func analyzeImage() {
         guard let image = capturedImage else { return }
@@ -176,51 +195,6 @@ struct TipRow: View {
                 .font(.subheadline)
             Spacer()
         }
-    }
-}
-
-struct PrimaryButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.headline)
-            .foregroundColor(.white)
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(
-                LinearGradient(
-                    colors: [.purple, .pink],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-            )
-            .cornerRadius(16)
-            .scaleEffect(configuration.isPressed ? 0.95 : 1)
-    }
-}
-
-struct SecondaryButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.headline)
-            .foregroundColor(.purple)
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(
-                Color(.systemBackground)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(
-                        LinearGradient(
-                            colors: [.purple, .pink],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        ),
-                        lineWidth: 2
-                    )
-            )
-            .cornerRadius(16)
-            .scaleEffect(configuration.isPressed ? 0.95 : 1)
     }
 }
 
