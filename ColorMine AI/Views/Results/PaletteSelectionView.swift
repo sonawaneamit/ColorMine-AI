@@ -311,6 +311,27 @@ struct PaletteSelectionView: View {
         // Clear profile and restart from scan
         appState.clearProfile()
     }
+
+    // MARK: - Update Season
+    private func updateSeason(to newSeason: ColorSeason) {
+        currentSeason = newSeason
+        // Clear selected colors when season changes
+        selectedColors.removeAll()
+
+        // Update profile with new season
+        var updatedProfile = profile
+        updatedProfile.season = newSeason
+        appState.saveProfile(updatedProfile)
+    }
+
+    // MARK: - Update Color
+    private func updateColor(original: ColorSwatch, new: ColorSwatch) {
+        // If the original color was selected, replace it with the new one
+        if selectedColors.contains(original) {
+            selectedColors.remove(original)
+            selectedColors.insert(new)
+        }
+    }
 }
 
 // MARK: - Analysis Detail
@@ -341,46 +362,206 @@ struct AnalysisDetail: View {
 struct ColorSwatchButton: View {
     let swatch: ColorSwatch
     let isSelected: Bool
-    let action: () -> Void
+    let onTap: () -> Void
+    let onLongPress: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            VStack(spacing: 6) {
-                ZStack {
+        VStack(spacing: 6) {
+            ZStack {
+                Circle()
+                    .fill(swatch.color)
+                    .frame(width: 60, height: 60)
+                    .overlay(
+                        Circle()
+                            .strokeBorder(
+                                isSelected ? Color.purple : Color.clear,
+                                lineWidth: 4
+                            )
+                    )
+                    .shadow(color: isSelected ? .purple.opacity(0.5) : .black.opacity(0.1), radius: isSelected ? 8 : 4)
+                    .onTapGesture {
+                        onTap()
+                    }
+                    .onLongPressGesture {
+                        onLongPress()
+                    }
+
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(.white)
+                        .background(
+                            Circle()
+                                .fill(Color.purple)
+                                .frame(width: 28, height: 28)
+                        )
+                        .offset(x: 22, y: -22)
+                }
+            }
+
+            Text(swatch.name)
+                .font(.caption2)
+                .foregroundColor(.primary)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .frame(width: 70)
+        }
+    }
+}
+
+// MARK: - Color Edit Sheet
+struct ColorEditSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let color: ColorSwatch
+    let onSave: (ColorSwatch) -> Void
+
+    @State private var selectedColor: Color
+    @State private var colorName: String
+
+    init(color: ColorSwatch, onSave: @escaping (ColorSwatch) -> Void) {
+        self.color = color
+        self.onSave = onSave
+        _selectedColor = State(initialValue: color.color)
+        _colorName = State(initialValue: color.name)
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 30) {
+                // Preview
+                VStack(spacing: 16) {
+                    Text("Edit Color")
+                        .font(.title2)
+                        .fontWeight(.bold)
+
                     Circle()
-                        .fill(swatch.color)
-                        .frame(width: 60, height: 60)
+                        .fill(selectedColor)
+                        .frame(width: 120, height: 120)
                         .overlay(
                             Circle()
-                                .strokeBorder(
-                                    isSelected ? Color.purple : Color.clear,
-                                    lineWidth: 4
-                                )
+                                .strokeBorder(Color.gray.opacity(0.3), lineWidth: 2)
                         )
-                        .shadow(color: isSelected ? .purple.opacity(0.5) : .black.opacity(0.1), radius: isSelected ? 8 : 4)
+                        .shadow(radius: 8)
 
-                    if isSelected {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(.white)
-                            .background(
-                                Circle()
-                                    .fill(Color.purple)
-                                    .frame(width: 28, height: 28)
-                            )
-                            .offset(x: 22, y: -22)
-                    }
+                    Text(colorName)
+                        .font(.headline)
                 }
+                .padding(.top, 40)
 
-                Text(swatch.name)
-                    .font(.caption2)
-                    .foregroundColor(.primary)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .frame(width: 70)
+                // Color Picker
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Select Color")
+                        .font(.headline)
+                        .padding(.horizontal)
+
+                    ColorPicker("", selection: $selectedColor, supportsOpacity: false)
+                        .labelsHidden()
+                        .padding()
+                        .background(Color(.systemBackground))
+                        .cornerRadius(12)
+                }
+                .padding(.horizontal)
+
+                Spacer()
+
+                // Action Buttons
+                HStack(spacing: 16) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                    .buttonStyle(SecondaryButtonStyle())
+
+                    Button("Save") {
+                        saveColor()
+                    }
+                    .buttonStyle(PrimaryButtonStyle())
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 40)
+            }
+            .background(Color(.systemGroupedBackground))
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        saveColor()
+                    }
+                    .foregroundColor(.purple)
+                    .fontWeight(.semibold)
+                }
             }
         }
-        .buttonStyle(.plain)
+    }
+
+    private func saveColor() {
+        // Convert Color to hex
+        let uiColor = UIColor(selectedColor)
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+
+        uiColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+
+        let hexString = String(
+            format: "%02X%02X%02X",
+            Int(red * 255),
+            Int(green * 255),
+            Int(blue * 255)
+        )
+
+        let newSwatch = ColorSwatch(
+            id: color.id,
+            name: colorName,
+            hex: hexString
+        )
+
+        onSave(newSwatch)
+        dismiss()
+    }
+}
+
+// MARK: - Secondary Button Style
+struct SecondaryButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.headline)
+            .foregroundColor(.purple)
+            .frame(maxWidth: .infinity)
+            .padding()
+            .background(Color(.systemBackground))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(
+                        LinearGradient(
+                            colors: [.purple, .pink],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        ),
+                        lineWidth: 2
+                    )
+            )
+            .cornerRadius(16)
+            .scaleEffect(configuration.isPressed ? 0.95 : 1)
+    }
+}
+
+// MARK: - Primary Button Style
+struct PrimaryButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.headline)
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .padding()
+            .background(
+                LinearGradient(
+                    colors: [.purple, .pink],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .cornerRadius(16)
+            .scaleEffect(configuration.isPressed ? 0.95 : 1)
     }
 }
 
