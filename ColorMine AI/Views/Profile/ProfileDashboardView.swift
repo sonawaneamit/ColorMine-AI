@@ -55,6 +55,7 @@ struct ProfileDashboardView: View {
         }
         .sheet(item: $selectedPack) { packType in
             PackDetailView(profile: profile, packType: packType)
+                .environmentObject(appState)
         }
         .confirmationDialog("Regenerate Content", isPresented: $showRegenerateOptions) {
             Button("Change Focus Color & Regenerate Packs") {
