@@ -159,6 +159,25 @@ struct ProfileTab: View {
                         .fontWeight(.bold)
                         .padding(.horizontal)
 
+                    // Show message if no packs yet
+                    if !profile.packsGenerated.allGenerated {
+                        VStack(spacing: 12) {
+                            Image(systemName: "wand.and.stars")
+                                .font(.system(size: 50))
+                                .foregroundColor(.purple.opacity(0.5))
+                            Text("Your AI packs are being generated")
+                                .font(.headline)
+                            Text("This may take 2-3 minutes")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 40)
+                        .background(Color(.systemBackground))
+                        .cornerRadius(16)
+                        .padding(.horizontal)
+                    }
+
                     // Drapes Grid
                     if let drapesURL = profile.drapesGridImageURL,
                        let uiImage = UIImage(contentsOfFile: drapesURL.path) {
