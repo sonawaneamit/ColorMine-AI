@@ -71,12 +71,20 @@ class GeminiService {
         selfieImage: UIImage,
         focusColor: ColorSwatch,
         undertone: Undertone,
-        contrast: Contrast
+        contrast: Contrast,
+        eyeshadowIntensity: Double = 50,
+        eyelinerIntensity: Double = 50,
+        blushIntensity: Double = 50,
+        lipstickIntensity: Double = 50
     ) async throws -> UIImage {
         let prompt = PromptEngine.makeupPackPrompt(
             color: focusColor,
             undertone: undertone,
-            contrast: contrast
+            contrast: contrast,
+            eyeshadowIntensity: eyeshadowIntensity,
+            eyelinerIntensity: eyelinerIntensity,
+            blushIntensity: blushIntensity,
+            lipstickIntensity: lipstickIntensity
         )
         return try await generateImage(
             prompt: prompt,

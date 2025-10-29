@@ -91,15 +91,35 @@ class PromptEngine {
     }
 
     // MARK: - Makeup Pack Prompt
-    static func makeupPackPrompt(color: ColorSwatch, undertone: Undertone, contrast: Contrast) -> String {
+    static func makeupPackPrompt(
+        color: ColorSwatch,
+        undertone: Undertone,
+        contrast: Contrast,
+        eyeshadowIntensity: Double = 50,
+        eyelinerIntensity: Double = 50,
+        blushIntensity: Double = 50,
+        lipstickIntensity: Double = 50
+    ) -> String {
+        // Convert intensity percentages to descriptive levels
+        func intensityLevel(_ value: Double) -> String {
+            switch value {
+            case 0..<20: return "very subtle"
+            case 20..<40: return "light"
+            case 40..<60: return "medium"
+            case 60..<80: return "bold"
+            default: return "dramatic"
+            }
+        }
+
         return """
         Create a makeup harmony pack showing how \(color.name) (#\(color.hex)) influences coordinating makeup tones.
 
         Show the person with makeup that harmonizes with this color:
-        1. Lipstick in complementary shade
-        2. Blush in harmonizing tone
-        3. Eyeshadow in coordinating color
-        4. Full makeup look combining all three
+        1. Lipstick in complementary shade - \(intensityLevel(lipstickIntensity)) intensity (\(Int(lipstickIntensity))%)
+        2. Blush in harmonizing tone - \(intensityLevel(blushIntensity)) intensity (\(Int(blushIntensity))%)
+        3. Eyeshadow in coordinating color - \(intensityLevel(eyeshadowIntensity)) intensity (\(Int(eyeshadowIntensity))%)
+        4. Eyeliner - \(intensityLevel(eyelinerIntensity)) intensity (\(Int(eyelinerIntensity))%)
+        5. Full makeup look combining all elements
 
         REQUIREMENTS:
         - Realistic, professional makeup application
@@ -107,14 +127,21 @@ class PromptEngine {
         - Natural, flattering lighting
         - Focus on color harmony and coordination
         - Professional beauty photography style
-        - Label each with makeup type
+        - Label each with makeup type and intensity level
+        - Apply makeup according to the specified intensity levels
 
         COLOR PROFILE:
         - Undertone: \(undertone.rawValue)
         - Contrast: \(contrast.rawValue)
         - Focus Color: \(color.name)
 
-        Goal: Show how this color creates a cohesive makeup palette that enhances natural features.
+        INTENSITY GUIDELINES:
+        - Eyeshadow: \(intensityLevel(eyeshadowIntensity)) (\(Int(eyeshadowIntensity))% coverage)
+        - Eyeliner: \(intensityLevel(eyelinerIntensity)) (\(Int(eyelinerIntensity))% thickness)
+        - Blush: \(intensityLevel(blushIntensity)) (\(Int(blushIntensity))% pigmentation)
+        - Lipstick: \(intensityLevel(lipstickIntensity)) (\(Int(lipstickIntensity))% color saturation)
+
+        Goal: Show how this color creates a cohesive makeup palette with customized intensity that enhances natural features.
         """
     }
 

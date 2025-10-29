@@ -58,9 +58,8 @@ struct PackDetailView: View {
                         case .makeupPack:
                             if let url = profile.makeupPackImageURL,
                                let image = UIImage(contentsOfFile: url.path) {
-                                ImagePackDetail(
-                                    title: "Makeup Pack",
-                                    description: "Your ideal makeup palette based on your undertone and contrast",
+                                MakeupPackDetail(
+                                    profile: profile,
                                     image: image
                                 )
                             }
@@ -169,6 +168,232 @@ struct ImagePackDetail: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
+    }
+}
+
+// MARK: - Makeup Pack Detail
+struct MakeupPackDetail: View {
+    @EnvironmentObject var appState: AppState
+    let profile: UserProfile
+    let image: UIImage
+
+    @State private var eyeshadowIntensity: Double = 50
+    @State private var eyelinerIntensity: Double = 50
+    @State private var blushIntensity: Double = 50
+    @State private var lipstickIntensity: Double = 50
+    @State private var isRegenerating = false
+    @State private var scale: CGFloat = 1.0
+    @State private var lastScale: CGFloat = 1.0
+    @State private var offset: CGSize = .zero
+    @State private var lastOffset: CGSize = .zero
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("Your ideal makeup palette based on your undertone and contrast")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+
+            // Image with zoom
+            GeometryReader { geometry in
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .cornerRadius(16)
+                    .shadow(radius: 10)
+                    .scaleEffect(scale)
+                    .offset(offset)
+                    .gesture(
+                        SimultaneousGesture(
+                            MagnificationGesture()
+                                .onChanged { value in
+                                    scale = lastScale * value
+                                }
+                                .onEnded { _ in
+                                    lastScale = scale
+                                    if scale < 1.0 {
+                                        withAnimation(.spring()) {
+                                            scale = 1.0
+                                            lastScale = 1.0
+                                            offset = .zero
+                                            lastOffset = .zero
+                                        }
+                                    }
+                                },
+                            DragGesture()
+                                .onChanged { value in
+                                    if scale > 1.0 {
+                                        offset = CGSize(
+                                            width: lastOffset.width + value.translation.width,
+                                            height: lastOffset.height + value.translation.height
+                                        )
+                                    }
+                                }
+                                .onEnded { _ in
+                                    lastOffset = offset
+                                }
+                        )
+                    )
+                    .onTapGesture(count: 2) {
+                        withAnimation(.spring()) {
+                            scale = 1.0
+                            lastScale = 1.0
+                            offset = .zero
+                            lastOffset = .zero
+                        }
+                    }
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+            }
+            .frame(height: 400)
+
+            Text(scale > 1.0 ? "Pinch to zoom • Drag to pan • Double tap to reset" : "Pinch to zoom • Double tap to reset")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            // Intensity Sliders
+            VStack(spacing: 20) {
+                Text("Adjust Makeup Intensity")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal)
+
+                MakeupSlider(
+                    label: "Eyeshadow",
+                    value: $eyeshadowIntensity,
+                    icon: "sparkles"
+                )
+
+                MakeupSlider(
+                    label: "Eyeliner",
+                    value: $eyelinerIntensity,
+                    icon: "eye"
+                )
+
+                MakeupSlider(
+                    label: "Blush",
+                    value: $blushIntensity,
+                    icon: "heart.fill"
+                )
+
+                MakeupSlider(
+                    label: "Lipstick",
+                    value: $lipstickIntensity,
+                    icon: "mouth"
+                )
+            }
+            .padding()
+            .background(Color(.systemBackground))
+            .cornerRadius(16)
+            .padding(.horizontal)
+
+            // Regenerate Button
+            if isRegenerating {
+                VStack(spacing: 12) {
+                    ProgressView()
+                        .scaleEffect(1.2)
+                    Text("Regenerating with your settings...")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .padding()
+            } else {
+                Button(action: {
+                    regenerateMakeup()
+                }) {
+                    HStack {
+                        Image(systemName: "arrow.clockwise")
+                        Text("Regenerate Makeup")
+                    }
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(
+                        LinearGradient(
+                            colors: [.purple, .pink],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .cornerRadius(16)
+                }
+                .padding(.horizontal)
+            }
+
+            Spacer().frame(height: 20)
+        }
+    }
+
+    private func regenerateMakeup() {
+        guard let selfieImage = profile.selfieImage,
+              let focusColor = profile.focusColor else { return }
+
+        isRegenerating = true
+
+        Task {
+            do {
+                let makeupImage = try await GeminiService.shared.generateMakeupPack(
+                    selfieImage: selfieImage,
+                    focusColor: focusColor,
+                    undertone: profile.undertone,
+                    contrast: profile.contrast,
+                    eyeshadowIntensity: eyeshadowIntensity,
+                    eyelinerIntensity: eyelinerIntensity,
+                    blushIntensity: blushIntensity,
+                    lipstickIntensity: lipstickIntensity
+                )
+
+                let makeupURL = ImageCacheManager.shared.saveAIImage(
+                    makeupImage,
+                    for: .makeupPack,
+                    userID: profile.id
+                )
+
+                var updatedProfile = profile
+                updatedProfile.makeupPackImageURL = makeupURL
+                appState.saveProfile(updatedProfile)
+
+                isRegenerating = false
+            } catch {
+                print("❌ Error regenerating makeup: \(error)")
+                isRegenerating = false
+            }
+        }
+    }
+}
+
+// MARK: - Makeup Slider
+struct MakeupSlider: View {
+    let label: String
+    @Binding var value: Double
+    let icon: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: icon)
+                    .foregroundColor(.purple)
+                    .frame(width: 20)
+                Text(label)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                Spacer()
+                Text("\(Int(value))%")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+
+            Slider(value: $value, in: 0...100, step: 5)
+                .tint(
+                    LinearGradient(
+                        colors: [.purple, .pink],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+        }
+        .padding(.horizontal)
     }
 }
 
