@@ -12,7 +12,7 @@ class GeminiService {
     static let shared = GeminiService()
 
     // IMPORTANT: In production, move API key to secure storage or environment variable
-    private let apiKey = "AIzaSyBohbtglUEIkjrvuJ_wZOMv346jjsxzafY"
+    private let apiKey = APIKeys.geminiAPIKey
 
     // Different models for different purposes
     private let visionModel = "gemini-2.0-flash-exp"  // Nano Banana - for analysis/text
