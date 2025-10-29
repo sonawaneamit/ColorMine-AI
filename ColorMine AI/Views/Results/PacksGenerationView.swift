@@ -90,6 +90,7 @@ struct PacksGenerationView: View {
         .navigationDestination(isPresented: $navigateToDashboard) {
             if let updatedProfile = appState.currentProfile {
                 ProfileDashboardView(profile: updatedProfile)
+                    .environmentObject(appState)
             }
         }
         .onAppear {
