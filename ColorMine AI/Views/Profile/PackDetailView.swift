@@ -113,7 +113,8 @@ struct ImagePackDetail: View {
             GeometryReader { geometry in
                 Image(uiImage: image)
                     .resizable()
-                    .scaledToFit()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .cornerRadius(16)
                     .shadow(radius: 10)
                     .scaleEffect(scale)
@@ -160,9 +161,8 @@ struct ImagePackDetail: View {
                             lastOffset = .zero
                         }
                     }
-                    .frame(width: geometry.size.width, height: geometry.size.height)
             }
-            .frame(height: 500)
+            .frame(height: 600) // Increased height for more viewing space
 
             Text(scale > 1.0 ? "Pinch to zoom • Drag to pan • Double tap to reset" : "Pinch to zoom • Double tap to reset")
                 .font(.caption)
@@ -199,7 +199,8 @@ struct MakeupPackDetail: View {
             GeometryReader { geometry in
                 Image(uiImage: image)
                     .resizable()
-                    .scaledToFit()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .cornerRadius(16)
                     .shadow(radius: 10)
                     .scaleEffect(scale)
@@ -243,9 +244,8 @@ struct MakeupPackDetail: View {
                             lastOffset = .zero
                         }
                     }
-                    .frame(width: geometry.size.width, height: geometry.size.height)
             }
-            .frame(height: 400)
+            .frame(height: 500) // Increased height for better viewing
 
             Text(scale > 1.0 ? "Pinch to zoom • Drag to pan • Double tap to reset" : "Pinch to zoom • Double tap to reset")
                 .font(.caption)
