@@ -156,9 +156,6 @@ struct PacksGenerationView: View {
                 updatedProfile.texturePackImageURL = textureURL
                 updatedProfile.packsGenerated.textures = true
                 appState.saveProfile(updatedProfile)
-
-                    // Send notification
-                    NotificationManager.shared.sendPackCompletionNotification(packType: .texturePack)
                 } catch {
                     errorMessage = "Texture Pack: \(error.localizedDescription)"
                 }
@@ -183,9 +180,6 @@ struct PacksGenerationView: View {
                 updatedProfile.jewelryPackImageURL = jewelryURL
                 updatedProfile.packsGenerated.jewelry = true
                 appState.saveProfile(updatedProfile)
-
-                    // Send notification
-                    NotificationManager.shared.sendPackCompletionNotification(packType: .jewelryPack)
                 } catch {
                     errorMessage = "Jewelry Pack: \(error.localizedDescription)"
                 }
@@ -211,9 +205,6 @@ struct PacksGenerationView: View {
                 updatedProfile.makeupPackImageURL = makeupURL
                 updatedProfile.packsGenerated.makeup = true
                 appState.saveProfile(updatedProfile)
-
-                    // Send notification
-                    NotificationManager.shared.sendPackCompletionNotification(packType: .makeupPack)
                 } catch {
                     errorMessage = "Makeup Pack: \(error.localizedDescription)"
                 }
