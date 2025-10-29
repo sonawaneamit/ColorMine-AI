@@ -477,17 +477,37 @@ struct ColorEditSheet: View {
                 }
                 .padding(.top, 40)
 
-                // Color Picker
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Select Color")
-                        .font(.headline)
-                        .padding(.horizontal)
+                // Color Picker - Full Wheel
+                VStack(alignment: .center, spacing: 20) {
+                    VStack(spacing: 8) {
+                        Image(systemName: "hand.tap.fill")
+                            .font(.title2)
+                            .foregroundColor(.purple.opacity(0.7))
+                        Text("Tap the circle below to open color picker")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.horizontal)
 
-                    ColorPicker("", selection: $selectedColor, supportsOpacity: false)
-                        .labelsHidden()
-                        .padding()
-                        .background(Color(.systemBackground))
-                        .cornerRadius(12)
+                    // Make the ColorPicker more prominent
+                    ZStack {
+                        Circle()
+                            .stroke(
+                                LinearGradient(
+                                    colors: [.purple.opacity(0.3), .pink.opacity(0.3)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 3
+                            )
+                            .frame(width: 80, height: 80)
+
+                        ColorPicker("", selection: $selectedColor, supportsOpacity: false)
+                            .labelsHidden()
+                            .scaleEffect(2.0) // Make the circle bigger
+                    }
+                    .frame(height: 100)
                 }
                 .padding(.horizontal)
 
