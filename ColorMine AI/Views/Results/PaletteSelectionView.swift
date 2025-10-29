@@ -109,6 +109,20 @@ struct PaletteSelectionView: View {
                             }
                         }
 
+                        // Tooltip for season editing
+                        HStack(spacing: 6) {
+                            Image(systemName: "info.circle.fill")
+                                .font(.caption)
+                                .foregroundColor(.purple.opacity(0.7))
+                            Text("Tap the pencil icon to change your season if you already know it")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.horizontal)
+                        .padding(.vertical, 8)
+                        .background(Color.purple.opacity(0.1))
+                        .cornerRadius(8)
+
                         // Analysis details
                         HStack(spacing: 20) {
                             AnalysisDetail(
@@ -153,6 +167,21 @@ struct PaletteSelectionView: View {
                             }
                         }
                         .padding(.top, 4)
+
+                        // Tooltip for color editing
+                        HStack(spacing: 6) {
+                            Image(systemName: "hand.tap.fill")
+                                .font(.caption)
+                                .foregroundColor(.pink.opacity(0.7))
+                            Text("Long press any color to customize its shade")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.horizontal)
+                        .padding(.vertical, 8)
+                        .background(Color.pink.opacity(0.1))
+                        .cornerRadius(8)
+                        .padding(.top, 8)
                     }
 
                     // Color palette grid
