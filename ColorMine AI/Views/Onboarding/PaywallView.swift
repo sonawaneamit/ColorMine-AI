@@ -212,14 +212,9 @@ struct PaywallView: View {
     // MARK: - Debug Bypass (DEBUG only)
     #if DEBUG
     private func debugBypass() {
-        // Temporarily mark as subscribed for testing
+        // Mark as subscribed and persist for future sessions
         // This only works in debug builds
-        Task {
-            await MainActor.run {
-                appState.isSubscribed = true
-            }
-            print("🐛 DEBUG: Paywall bypassed for testing")
-        }
+        appState.enableDebugBypass()
     }
     #endif
 }

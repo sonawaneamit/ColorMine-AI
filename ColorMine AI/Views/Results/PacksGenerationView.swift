@@ -136,8 +136,8 @@ struct PacksGenerationView: View {
     private func startGeneration() {
         // Check if already generated - shouldn't happen due to routing logic,
         // but adding as safety check
-        if profile.packsGenerated.allGenerated {
-            print("✅ All packs already generated, skipping to dashboard")
+        if profile.packsGenerated.allGenerated(selectedPacks: profile.selectedPacks) {
+            print("✅ All selected packs already generated, skipping to dashboard")
             isGenerating = false
             navigateToDashboard = true
             return

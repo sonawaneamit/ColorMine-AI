@@ -161,7 +161,7 @@ struct ProfileTab: View {
                         .padding(.horizontal)
 
                     // Show message if no packs yet
-                    if !profile.packsGenerated.allGenerated {
+                    if !profile.packsGenerated.allGenerated(selectedPacks: profile.selectedPacks) {
                         VStack(spacing: 12) {
                             Image(systemName: "wand.and.stars")
                                 .font(.system(size: 50))

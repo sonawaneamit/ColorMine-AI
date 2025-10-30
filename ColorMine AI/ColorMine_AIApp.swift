@@ -39,7 +39,7 @@ struct RootView: View {
             } else if let profile = appState.currentProfile {
                 // Check if profile flow is complete
                 if profile.favoriteColors.isEmpty {
-                    // Step 1: Choose favorite colors (3-8)
+                    // Step 1: Choose favorite colors (3-12)
                     PaletteSelectionView(profile: profile)
                 } else if profile.drapesGridImageURL == nil {
                     // Step 2: Generate drapes (should auto-generate, but show selection again)
@@ -50,7 +50,7 @@ struct RootView: View {
                 } else if !profile.hasChosenPacks {
                     // Step 4: Choose which packs to generate
                     FocusColorView(profile: profile)
-                } else if !profile.packsGenerated.allGenerated {
+                } else if !profile.packsGenerated.allGenerated(selectedPacks: profile.selectedPacks) {
                     // Step 5: Generate selected AI packs
                     PacksGenerationView(profile: profile)
                 } else {
