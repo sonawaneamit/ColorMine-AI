@@ -67,7 +67,7 @@ class PromptEngine {
 
         IMPORTANT - Keep consistent:
         - Same person's face, skin tone, and features in all 6 tiles
-        - Same clothing color \(color.name) in all tiles
+        - Keep clothing in the \(color.name) color family (similar shades are fine - fabrics naturally look different, but avoid completely different colors)
         - Same pose and lighting
         - ONLY the fabric texture should change between tiles (matte, shiny, smooth, textured, etc.)
 
@@ -102,7 +102,7 @@ class PromptEngine {
 
         IMPORTANT - Keep consistent:
         - Same person's face, skin tone, and features in all 6 tiles
-        - Same clothing color \(color.name) in all tiles
+        - Keep clothing in the \(color.name) color family (similar shades are fine, but avoid completely different colors)
         - Same pose and lighting
         - ONLY the jewelry metal/finish should change between tiles
 
