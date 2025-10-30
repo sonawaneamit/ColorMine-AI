@@ -45,6 +45,16 @@ struct ProfileDashboardView: View {
                             Label("Profile", systemImage: "person.circle.fill")
                         }
                         .tag(0)
+                        .toolbar {
+                            ToolbarItem(placement: .navigationBarTrailing) {
+                                Button(action: {
+                                    showRegenerateOptions = true
+                                }) {
+                                    Image(systemName: "arrow.triangle.2.circlepath")
+                                        .foregroundColor(.purple)
+                                }
+                            }
+                        }
 
                     // History Tab
                     HistoryView()
@@ -63,16 +73,6 @@ struct ProfileDashboardView: View {
                         .tag(2)
                 }
                 .navigationBarBackButtonHidden(true)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button(action: {
-                            showRegenerateOptions = true
-                        }) {
-                            Image(systemName: "arrow.triangle.2.circlepath")
-                                .foregroundColor(.purple)
-                        }
-                    }
-                }
                 .navigationDestination(item: $selectedPack) { packType in
                     PackDetailView(profile: profile, packType: packType)
                         .environmentObject(appState)
