@@ -556,7 +556,7 @@ struct TryOnTab: View {
                 ImagePicker(image: $newSelfieImage, sourceType: .photoLibrary)
             }
             .sheet(isPresented: $showRetakeFullBody) {
-                FullBodyImagePicker(selectedImage: $newFullBodyImage)
+                FullBodyImagePicker(image: $newFullBodyImage, sourceType: .photoLibrary)
             }
             .onChange(of: newSelfieImage) { _, newImage in
                 if let image = newImage, var currentProfile = profile {
