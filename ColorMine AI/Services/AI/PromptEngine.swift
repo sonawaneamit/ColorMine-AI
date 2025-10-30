@@ -63,39 +63,33 @@ class PromptEngine {
         let seasonKey = getSeasonKey(season)
 
         return """
-        Create a professional texture options grid showing \(color.name) (#\(color.hex)) in 6 different fabric textures suited for \(season.rawValue) coloring.
+        Create a professional texture options grid showing the same person wearing \(color.name) (#\(color.hex)) clothing in 6 different fabric textures.
 
-        🚨 CRITICAL - PRESERVE ORIGINAL APPEARANCE:
-        - The person's skin tone, complexion, and ethnicity MUST remain EXACTLY as shown in the reference photo
-        - DO NOT alter, lighten, darken, or change the skin color in any way
-        - Maintain the person's natural features, face shape, and appearance
-        - The clothing color MUST stay EXACTLY \(color.name) (#\(color.hex)) - DO NOT change the color
-        - ONLY change the fabric TEXTURE (smooth, ribbed, fuzzy, shiny, matte, etc.) - NOT the color
-        - The color \(color.name) should look identical across all 6 tiles - only the texture should vary
+        IMPORTANT - Keep consistent:
+        - Same person's face, skin tone, and features in all 6 tiles
+        - Same clothing color \(color.name) in all tiles
+        - Same pose and lighting
+        - ONLY the fabric texture should change between tiles (matte, shiny, smooth, textured, etc.)
 
-        CRITICAL GRID FORMAT:
-        - Create EXACTLY a 2×3 grid (2 columns, 3 rows = 6 total tiles)
-        - Vertical orientation (taller than wide) optimized for phone screens
-        - Same person, same pose, same lighting in each tile
-        - Show upper body (neck to waist) to display fabric texture and drape
-        - Each tile clearly labeled with the fabric type
+        GRID FORMAT:
+        - 2×3 grid layout (2 columns, 3 rows = 6 tiles total)
+        - Vertical orientation for mobile viewing
+        - Show upper body to clearly display fabric texture and drape
+        - Label each tile with the fabric type name
 
-        SEASON-APPROPRIATE TEXTURES FOR \(season.rawValue):
-        Based on professional color analysis for season "\(seasonKey)", select 6 textures from these categories:
-        - Recommended textures that enhance \(season.rawValue) coloring
-        - Vary from structured to flowing
-        - Include both casual and elegant options
-        - Examples: Silk, Cotton, Linen, Wool, Cashmere, Velvet, Satin, Suede, Leather, Fine Knit
+        FABRIC TEXTURES for \(season.rawValue):
+        Choose 6 different textures that suit \(season.rawValue) coloring:
+        - Examples: Silk (shiny), Cotton (matte), Linen (textured), Wool (soft), Cashmere (smooth), Velvet (plush), Satin (glossy), Suede (textured)
+        - Include variety from structured to flowing fabrics
+        - Mix casual and elegant options
 
-        REQUIREMENTS:
-        - Professional studio lighting to showcase texture differences
-        - Each fabric should show distinct visual texture (matte vs. shiny, smooth vs. textured, etc.)
-        - High resolution, professional quality
-        - Labels clearly visible on each tile
-        - The color \(color.name) (#\(color.hex)) MUST remain absolutely consistent across all tiles
-        - DO NOT vary the color shade, hue, saturation, or lightness - only the texture changes
+        STYLE:
+        - Professional fashion photography
+        - Clear lighting to show texture differences
+        - High quality, realistic rendering
+        - Each fabric should look distinctly different in finish and texture
 
-        Goal: Show how the SAME EXACT color \(color.name) appears in different fabric textures, helping visualize which texture finishes work best for \(season.rawValue) season coloring while keeping the color completely unchanged.
+        The goal is to show how the color \(color.name) appears in different fabric finishes while keeping the person and color consistent.
         """
     }
 
@@ -104,42 +98,34 @@ class PromptEngine {
         let seasonKey = getSeasonKey(season)
 
         return """
-        Create a professional jewelry options grid showing the same person wearing \(color.name) (#\(color.hex)) with 6 different metal finishes.
+        Create a professional jewelry options grid showing the same person wearing \(color.name) (#\(color.hex)) clothing with 6 different jewelry metal finishes.
 
-        🚨 CRITICAL - PRESERVE ORIGINAL APPEARANCE:
-        - The person's skin tone, complexion, and ethnicity MUST remain EXACTLY as shown in the reference photo
-        - DO NOT alter, lighten, darken, or change the skin color in any way
-        - Maintain the person's natural features, face shape, and appearance
-        - The clothing color MUST stay EXACTLY \(color.name) (#\(color.hex)) - DO NOT change the clothing color
-        - ONLY change the jewelry metal/finish - the clothing color and skin tone stay completely identical
+        IMPORTANT - Keep consistent:
+        - Same person's face, skin tone, and features in all 6 tiles
+        - Same clothing color \(color.name) in all tiles
+        - Same pose and lighting
+        - ONLY the jewelry metal/finish should change between tiles
 
-        CRITICAL GRID FORMAT:
-        - Create EXACTLY a 2×3 grid (2 columns, 3 rows = 6 total tiles)
-        - Vertical orientation (taller than wide) optimized for phone screens
-        - Same person, same pose, same lighting in each tile
-        - Person wearing \(color.name) in ALL tiles
+        GRID FORMAT:
+        - 2×3 grid layout (2 columns, 3 rows = 6 tiles total)
+        - Vertical orientation for mobile viewing
+        - Person wearing \(color.name) clothing in all tiles
         - Each tile clearly labeled with the metal type
 
-        SEASON-APPROPRIATE METALS FOR \(season.rawValue):
-        Based on professional color analysis for season "\(seasonKey)" with \(undertone.rawValue) undertones, show 6 metal options:
-        - Include best metals for this season (prioritize these)
-        - Include 1-2 okay/acceptable metals for comparison
-        - Common metals: Yellow Gold, Rose Gold, White Gold, Silver, Platinum, Bronze, Copper, Champagne Gold, Antique Gold
+        JEWELRY METALS for \(season.rawValue) with \(undertone.rawValue) undertones:
+        Show 6 different metal finishes suited for this season:
+        - Examples: Yellow Gold, Rose Gold, White Gold, Silver, Platinum, Bronze, Copper, Champagne Gold
+        - Include best metals for \(season.rawValue) season
         - Show elegant, simple jewelry (earrings, necklace, or delicate bracelets)
-
-        REQUIREMENTS:
-        - Professional styling and photography
-        - Clear view of both the clothing color and metal jewelry
-        - High resolution, professional quality
-        - Natural lighting that shows true metal tones
         - Each metal should be visually distinct
-        - The clothing color \(color.name) (#\(color.hex)) MUST remain exactly the same across all tiles
-        - DO NOT change the clothing color, shade, or appearance - only the jewelry metal changes
 
-        UNDERTONE GUIDANCE:
-        The person has \(undertone.rawValue) undertones. Emphasize how each metal finish complements or contrasts with the undertone.
+        STYLE:
+        - Professional fashion photography
+        - Clear view of both clothing and jewelry
+        - Natural lighting showing true metal tones
+        - High quality, realistic rendering
 
-        Goal: Help visualize which jewelry metals create the most harmonious look with the person's \(season.rawValue) coloring when wearing \(color.name), while keeping the clothing color completely unchanged.
+        The goal is to show which jewelry metals complement \(season.rawValue) coloring with \(undertone.rawValue) undertones when wearing \(color.name).
         """
     }
 
@@ -155,16 +141,14 @@ class PromptEngine {
         return """
         Create a professional makeup options grid showing the same person with 6 different complete makeup looks suited for \(season.rawValue) coloring.
 
-        🚨 CRITICAL - PRESERVE ORIGINAL APPEARANCE:
-        - The person's skin tone, complexion, and ethnicity MUST remain EXACTLY as shown in the reference photo
-        - DO NOT alter, lighten, darken, or change the skin color in any way
-        - Maintain the person's natural features, face shape, and appearance
-        - ONLY change the makeup application - the base skin tone stays identical
+        IMPORTANT - Keep consistent:
+        - Same person's face, skin tone, and features in all 6 tiles
+        - Same pose and lighting
+        - ONLY the makeup application should change between tiles
 
-        CRITICAL GRID FORMAT:
-        - Create EXACTLY a 2×3 grid (2 columns, 3 rows = 6 total tiles)
-        - Vertical orientation (taller than wide) optimized for phone screens
-        - Same person, same pose, same lighting in each tile
+        GRID FORMAT:
+        - 2×3 grid layout (2 columns, 3 rows = 6 tiles total)
+        - Vertical orientation for mobile viewing
         - Each tile clearly labeled with the makeup style name
 
         6 MAKEUP LOOKS TO SHOW:
@@ -223,44 +207,36 @@ class PromptEngine {
         let seasonKey = getSeasonKey(season)
 
         return """
-        Create a professional hair color options grid showing 6 different hair colors that complement \(season.rawValue) coloring with \(undertone.rawValue) undertones.
+        Create a professional hair color options grid showing the same person with 6 different hair colors that complement \(season.rawValue) coloring with \(undertone.rawValue) undertones.
 
-        🚨 CRITICAL - PRESERVE ORIGINAL APPEARANCE:
-        - The person's skin tone, complexion, and ethnicity MUST remain EXACTLY as shown in the reference photo
-        - DO NOT alter, lighten, darken, or change the skin color in any way
-        - Maintain the person's natural facial features, face shape, and appearance
-        - The clothing color MUST stay EXACTLY as shown in the reference photo - DO NOT change the clothing color
-        - ONLY change the hair color - the person's skin tone, clothing color, and features stay completely identical
-        - This is essential for respectful, accurate representation
+        IMPORTANT - Keep consistent:
+        - Same person's face, skin tone, and features in all 6 tiles
+        - Same pose and lighting
+        - ONLY the hair color should change between tiles
 
-        CRITICAL GRID FORMAT:
-        - Create EXACTLY a 2×3 grid (2 columns, 3 rows = 6 total tiles)
-        - Vertical orientation (taller than wide) optimized for phone screens
-        - Same person, same pose, same lighting in each tile
+        GRID FORMAT:
+        - 2×3 grid layout (2 columns, 3 rows = 6 tiles total)
+        - Vertical orientation for mobile viewing
         - Show head and shoulders to clearly display hair color
         - Each tile clearly labeled with the hair color name
 
-        SEASON-APPROPRIATE HAIR COLORS FOR \(season.rawValue):
-        Based on professional color analysis for season "\(seasonKey)" with \(undertone.rawValue) undertones, show 6 hair color options:
-        - Include a variety: lighter, medium, and darker tones
-        - All colors should harmonize with \(season.rawValue) coloring
-        - Professional salon-quality coloring and styling
-        - Natural-looking application (not costume/wig-like)
-        - Examples of color names: "Golden Blonde", "Warm Chestnut", "Rich Auburn", "Ash Brown", "Honey Caramel", etc.
+        HAIR COLORS for \(season.rawValue) with \(undertone.rawValue) undertones:
+        Show 6 different hair colors suited for this season:
+        - Include variety: lighter, medium, and darker tones
+        - Professional salon-quality coloring
+        - Natural-looking application
+        - Examples: "Golden Blonde", "Warm Chestnut", "Rich Auburn", "Ash Brown", "Honey Caramel", etc.
 
-        SEASON-SPECIFIC GUIDANCE:
+        SEASON GUIDANCE:
         \(getSeasonHairGuidance(for: season, undertone: undertone))
 
-        REQUIREMENTS:
+        STYLE:
         - Professional styling and photography
-        - Natural, flattering lighting to show true hair color
-        - High resolution, professional quality
+        - Natural lighting showing true hair color
+        - High quality, realistic rendering
         - Each hair color should be visually distinct
-        - Labels clearly visible on each tile
-        - The clothing color MUST remain exactly the same across all tiles
-        - DO NOT change the clothing color or skin tone - only the hair color changes
 
-        Goal: Help visualize which hair colors from the \(season.rawValue) palette will enhance natural coloring and create the most harmonious look, while keeping the clothing color and skin tone completely unchanged.
+        The goal is to visualize which hair colors enhance \(season.rawValue) coloring while maintaining natural appearance.
         """
     }
 
