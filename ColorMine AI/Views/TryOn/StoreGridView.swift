@@ -26,6 +26,7 @@ struct BrowserContent: Identifiable {
 
 struct StoreGridView: View {
     @EnvironmentObject var appState: AppState
+    @Environment(\.dismiss) private var dismiss
     @State private var browserContent: BrowserContent?
     @State private var showURLInput = false
     @State private var urlInputText = ""
@@ -35,18 +36,12 @@ struct StoreGridView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                // Header
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Shop Your Colors")
-                        .font(.title2)
-                        .fontWeight(.bold)
-
-                    Text("Browse stores and try outfits virtually")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
-                .padding(.horizontal)
-                .padding(.top, 20)
+                // Subtitle
+                Text("Browse stores and try outfits virtually")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal)
+                    .padding(.top, 8)
 
                 // Enter Custom URL Card
                 CustomURLCard {
@@ -90,6 +85,15 @@ struct StoreGridView: View {
             }
         }
         .background(Color(.systemGroupedBackground))
+        .navigationTitle("Shop Your Colors")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("Done") {
+                    dismiss()
+                }
+            }
+        }
         .sheet(item: $browserContent) { content in
             Group {
                 if let store = content.store {

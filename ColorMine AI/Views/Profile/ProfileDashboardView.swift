@@ -477,6 +477,7 @@ struct TryOnTab: View {
     @State private var showStoreGrid = false
     @State private var showSavedGarments = false
     @State private var showCreditsPurchase = false
+    @State private var selectedGarment: GarmentItem?
     @State private var selectedResult: TryOnResult?
     @State private var showResult = false
 
@@ -538,6 +539,10 @@ struct TryOnTab: View {
             }
             .sheet(isPresented: $showCreditsPurchase) {
                 CreditsPurchaseView()
+                    .environmentObject(appState)
+            }
+            .sheet(item: $selectedGarment) { garment in
+                TryOnProcessView(garment: garment)
                     .environmentObject(appState)
             }
             .fullScreenCover(isPresented: $showResult) {
@@ -715,7 +720,10 @@ struct TryOnTab: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                     ForEach(savedGarments.prefix(5)) { garment in
-                        SavedGarmentThumbnail(garment: garment)
+                        SavedGarmentThumbnail(garment: garment) {
+                            print("🖼️ [TryOnTab] Garment thumbnail tapped: \(garment.id)")
+                            selectedGarment = garment
+                        }
                     }
                 }
             }
@@ -793,31 +801,35 @@ private struct QuickActionCard: View {
 // MARK: - Saved Garment Thumbnail
 private struct SavedGarmentThumbnail: View {
     let garment: GarmentItem
+    let action: () -> Void
     @State private var garmentImage: UIImage?
 
     var body: some View {
-        VStack(spacing: 4) {
-            if let image = garmentImage {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 100, height: 120)
-                    .clipped()
-                    .cornerRadius(12)
-            } else {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(.systemGray5))
-                    .frame(width: 100, height: 120)
-            }
+        Button(action: action) {
+            VStack(spacing: 4) {
+                if let image = garmentImage {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 100, height: 120)
+                        .clipped()
+                        .cornerRadius(12)
+                } else {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color(.systemGray5))
+                        .frame(width: 100, height: 120)
+                }
 
-            if let store = garment.sourceStore {
-                Text(store)
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-                    .frame(width: 100)
+                if let store = garment.sourceStore {
+                    Text(store)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .frame(width: 100)
+                }
             }
         }
+        .buttonStyle(.plain)
         .onAppear {
             loadImage()
         }

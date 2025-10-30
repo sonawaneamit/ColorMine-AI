@@ -10,7 +10,6 @@ import SwiftUI
 struct SavedGarmentsView: View {
     @EnvironmentObject var appState: AppState
     @State private var selectedGarment: GarmentItem?
-    @State private var showTryOnSheet = false
     @State private var garmentToDelete: GarmentItem?
     @State private var showDeleteConfirmation = false
 
@@ -31,10 +30,9 @@ struct SavedGarmentsView: View {
         }
         .navigationTitle("Saved Garments")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $showTryOnSheet) {
-            if let garment = selectedGarment {
-                TryOnProcessView(garment: garment)
-            }
+        .sheet(item: $selectedGarment) { garment in
+            TryOnProcessView(garment: garment)
+                .environmentObject(appState)
         }
         .alert("Remove Garment?", isPresented: $showDeleteConfirmation) {
             Button("Cancel", role: .cancel) {
@@ -100,8 +98,8 @@ struct SavedGarmentsView: View {
                     ForEach(savedGarments) { garment in
                         GarmentCard(garment: garment)
                             .onTapGesture {
+                                print("🖼️ [SavedGarments] Garment tapped: \(garment.id)")
                                 selectedGarment = garment
-                                showTryOnSheet = true
                             }
                             .onLongPressGesture {
                                 garmentToDelete = garment
