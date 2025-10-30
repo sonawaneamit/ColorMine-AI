@@ -71,6 +71,14 @@ struct ProfileDashboardView: View {
                             Label("Try-On", systemImage: "tshirt.fill")
                         }
                         .tag(2)
+
+                    // Settings Tab
+                    SettingsView()
+                        .environmentObject(appState)
+                        .tabItem {
+                            Label("Settings", systemImage: "gearshape.fill")
+                        }
+                        .tag(3)
                 }
                 .navigationBarBackButtonHidden(true)
                 .navigationDestination(item: $selectedPack) { packType in
