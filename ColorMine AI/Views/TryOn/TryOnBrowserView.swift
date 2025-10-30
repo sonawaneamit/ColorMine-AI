@@ -159,7 +159,13 @@ struct TryOnBrowserView: View {
             return
         }
 
+        // Immediate haptic feedback when button tapped
+        HapticManager.shared.buttonTap()
+
         isCapturing = true
+
+        // Capture current URL for product link
+        let productURLString = currentURL?.absoluteString
 
         // Take screenshot of web view
         let config = WKSnapshotConfiguration()
@@ -204,6 +210,7 @@ struct TryOnBrowserView: View {
                     let garment = GarmentItem(
                         imageURL: garmentURL,
                         sourceStore: source,
+                        productURL: productURLString,  // Save product URL
                         dominantColorHex: nil, // No longer needed with OpenAI
                         matchesUserSeason: analysis.matchScore >= 70,
                         colorMatchScore: analysis.matchScore
@@ -214,9 +221,10 @@ struct TryOnBrowserView: View {
                     appState.saveProfile(profile)
 
                     print("✅ Garment saved: \(garment.id) with \(analysis.matchScore)% match")
+                    print("🔗 Product URL: \(productURLString ?? "none")")
                     print("🧠 OpenAI reasoning: \(analysis.reasoning)")
 
-                    // Haptic feedback
+                    // Success haptic feedback and confirmation
                     await MainActor.run {
                         HapticManager.shared.success()
                         showSaveConfirmation = true
@@ -228,6 +236,7 @@ struct TryOnBrowserView: View {
                     let garment = GarmentItem(
                         imageURL: garmentURL,
                         sourceStore: source,
+                        productURL: productURLString,  // Save product URL
                         dominantColorHex: nil,
                         matchesUserSeason: false,
                         colorMatchScore: nil // No score if analysis failed

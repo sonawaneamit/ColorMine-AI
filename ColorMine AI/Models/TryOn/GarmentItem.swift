@@ -12,6 +12,7 @@ struct GarmentItem: Identifiable, Codable, Equatable {
     let id: UUID
     let imageURL: URL          // Local file path
     let sourceStore: String?   // "ASOS", "H&M", etc.
+    let productURL: String?    // Direct link to product page
     let dateAdded: Date
 
     // Color analysis (optional)
@@ -23,6 +24,7 @@ struct GarmentItem: Identifiable, Codable, Equatable {
         id: UUID = UUID(),
         imageURL: URL,
         sourceStore: String? = nil,
+        productURL: String? = nil,
         dateAdded: Date = Date(),
         dominantColorHex: String? = nil,
         matchesUserSeason: Bool? = nil,
@@ -31,6 +33,7 @@ struct GarmentItem: Identifiable, Codable, Equatable {
         self.id = id
         self.imageURL = imageURL
         self.sourceStore = sourceStore
+        self.productURL = productURL
         self.dateAdded = dateAdded
         self.dominantColorHex = dominantColorHex
         self.matchesUserSeason = matchesUserSeason

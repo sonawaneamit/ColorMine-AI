@@ -364,7 +364,15 @@ struct TryOnResultView: View {
     }
 
     private func openStore() {
-        // Open the store website
+        // First priority: Open saved product URL if available
+        if let productURLString = result.garmentItem.productURL,
+           let url = URL(string: productURLString) {
+            UIApplication.shared.open(url)
+            print("📱 Opening product URL: \(productURLString)")
+            return
+        }
+
+        // Fallback: Open general store homepage
         if let storeName = result.garmentItem.sourceStore,
            let store = Store.predefinedStores.first(where: { $0.name == storeName }),
            let url = URL(string: store.url) {
