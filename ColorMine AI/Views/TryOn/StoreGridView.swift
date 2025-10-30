@@ -7,11 +7,26 @@
 
 import SwiftUI
 
+// MARK: - Browser Content (to fix state timing issue)
+struct BrowserContent: Identifiable {
+    let id = UUID()
+    let store: Store?
+    let customURL: String?
+
+    init(store: Store) {
+        self.store = store
+        self.customURL = nil
+    }
+
+    init(customURL: String) {
+        self.store = nil
+        self.customURL = customURL
+    }
+}
+
 struct StoreGridView: View {
     @EnvironmentObject var appState: AppState
-    @State private var selectedStore: Store?
-    @State private var customURL: String?
-    @State private var showBrowser = false
+    @State private var browserContent: BrowserContent?
     @State private var showURLInput = false
     @State private var urlInputText = ""
 
@@ -64,10 +79,8 @@ struct StoreGridView: View {
                     ForEach(stores) { store in
                         StoreCard(store: store) {
                             print("🛍️ [StoreGrid] Store tapped: \(store.name), URL: \(store.url)")
-                            selectedStore = store
-                            customURL = nil
-                            showBrowser = true
-                            print("🛍️ [StoreGrid] showBrowser set to true, selectedStore: \(store.name)")
+                            browserContent = BrowserContent(store: store)
+                            print("🛍️ [StoreGrid] browserContent set with store: \(store.name)")
                         }
                     }
                 }
@@ -77,19 +90,16 @@ struct StoreGridView: View {
             }
         }
         .background(Color(.systemGroupedBackground))
-        .sheet(isPresented: $showBrowser) {
+        .sheet(item: $browserContent) { content in
             Group {
-                if let store = selectedStore {
+                if let store = content.store {
                     let _ = print("🎬 [StoreGrid] sheet presenting store: \(store.name)")
                     TryOnBrowserView(store: store)
                         .environmentObject(appState)
-                } else if let url = customURL {
+                } else if let url = content.customURL {
                     let _ = print("🎬 [StoreGrid] sheet presenting custom URL: \(url)")
                     TryOnBrowserView(customURL: url)
                         .environmentObject(appState)
-                } else {
-                    let _ = print("⚠️ [StoreGrid] sheet has no store or URL!")
-                    Text("No URL selected")
                 }
             }
             .presentationDetents([.large])
@@ -99,10 +109,8 @@ struct StoreGridView: View {
         .sheet(isPresented: $showURLInput) {
             URLInputSheet(urlText: $urlInputText) { url in
                 print("🌐 [StoreGrid] Custom URL submitted: \(url)")
-                customURL = url
-                selectedStore = nil
-                showBrowser = true
-                print("🌐 [StoreGrid] showBrowser set to true with custom URL")
+                browserContent = BrowserContent(customURL: url)
+                print("🌐 [StoreGrid] browserContent set with custom URL")
             }
         }
     }
