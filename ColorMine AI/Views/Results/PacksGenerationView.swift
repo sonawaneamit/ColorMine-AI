@@ -68,9 +68,15 @@ struct PacksGenerationView: View {
                         .font(.title)
                         .fontWeight(.bold)
 
-                    Text("This may take 2-3 minutes...")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                    VStack(spacing: 4) {
+                        Text("This may take 2-3 minutes...")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+
+                        Text("You'll get a notification when it's ready")
+                            .font(.caption)
+                            .foregroundColor(.secondary.opacity(0.8))
+                    }
                 }
 
                 // Progress Steps
