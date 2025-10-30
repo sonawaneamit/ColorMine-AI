@@ -80,12 +80,18 @@ struct SavedGarmentsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 // Header
-                HStack {
-                    Text("\(savedGarments.count) saved item\(savedGarments.count == 1 ? "" : "s")")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("\(savedGarments.count) saved item\(savedGarments.count == 1 ? "" : "s")")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
 
-                    Spacer()
+                        Spacer()
+                    }
+
+                    Text("Tap to try on • Long press to delete")
+                        .font(.caption)
+                        .foregroundColor(.secondary.opacity(0.8))
                 }
                 .padding(.horizontal)
                 .padding(.top, 12)

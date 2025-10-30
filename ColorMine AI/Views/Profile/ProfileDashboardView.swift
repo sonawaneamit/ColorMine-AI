@@ -866,9 +866,15 @@ struct TryOnTab: View {
     // MARK: - Recent Try-Ons Section
     private var recentTryOnsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Recent Try-Ons")
-                .font(.headline)
-                .padding(.horizontal, 4)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Recent Try-Ons")
+                    .font(.headline)
+
+                Text("Permanent history of credits used")
+                    .font(.caption)
+                    .foregroundColor(.secondary.opacity(0.8))
+            }
+            .padding(.horizontal, 4)
 
             ForEach(recentTryOns.prefix(3)) { result in
                 RecentTryOnCard(result: result) {
