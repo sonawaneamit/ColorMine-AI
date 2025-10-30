@@ -479,7 +479,10 @@ struct TryOnTab: View {
     @State private var showCreditsPurchase = false
     @State private var selectedGarment: GarmentItem?
     @State private var selectedResult: TryOnResult?
-    @State private var showResult = false
+    @State private var showRetakeSelfie = false
+    @State private var showRetakeFullBody = false
+    @State private var newSelfieImage: UIImage?
+    @State private var newFullBodyImage: UIImage?
 
     private var profile: UserProfile? {
         appState.currentProfile
@@ -545,10 +548,32 @@ struct TryOnTab: View {
                 TryOnProcessView(garment: garment)
                     .environmentObject(appState)
             }
-            .fullScreenCover(isPresented: $showResult) {
-                if let result = selectedResult {
-                    TryOnResultView(result: result)
-                        .environmentObject(appState)
+            .fullScreenCover(item: $selectedResult) { result in
+                TryOnResultView(result: result)
+                    .environmentObject(appState)
+            }
+            .sheet(isPresented: $showRetakeSelfie) {
+                ImagePicker(image: $newSelfieImage, sourceType: .photoLibrary)
+            }
+            .sheet(isPresented: $showRetakeFullBody) {
+                FullBodyImagePicker(selectedImage: $newFullBodyImage)
+            }
+            .onChange(of: newSelfieImage) { _, newImage in
+                if let image = newImage, var currentProfile = profile {
+                    currentProfile.selfieImageData = image.jpegData(compressionQuality: 0.8)
+                    appState.saveProfile(currentProfile)
+                    print("✅ Updated selfie photo")
+                    newSelfieImage = nil
+                    HapticManager.shared.success()
+                }
+            }
+            .onChange(of: newFullBodyImage) { _, newImage in
+                if let image = newImage, var currentProfile = profile {
+                    currentProfile.fullBodyPhotoData = image.jpegData(compressionQuality: 0.8)
+                    appState.saveProfile(currentProfile)
+                    print("✅ Updated full body photo")
+                    newFullBodyImage = nil
+                    HapticManager.shared.success()
                 }
             }
         }
@@ -608,6 +633,11 @@ struct TryOnTab: View {
             VStack(spacing: 24) {
                 // Credits balance
                 creditsBalanceCard
+
+                // User photos
+                if let currentProfile = profile {
+                    userPhotosSection(profile: currentProfile)
+                }
 
                 // Quick actions
                 quickActionsSection
@@ -671,6 +701,109 @@ struct TryOnTab: View {
         .background(Color(.systemBackground))
         .cornerRadius(16)
         .shadow(color: .black.opacity(0.05), radius: 5, y: 2)
+    }
+
+    // MARK: - User Photos Section
+    @ViewBuilder
+    private func userPhotosSection(profile: UserProfile) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Your Photos")
+                .font(.headline)
+                .padding(.horizontal, 4)
+
+            HStack(spacing: 16) {
+                // Selfie Photo
+                VStack(spacing: 8) {
+                    if let selfieImage = profile.selfieImage {
+                        Image(uiImage: selfieImage)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 100, height: 100)
+                            .clipShape(Circle())
+                            .overlay(
+                                Circle()
+                                    .stroke(
+                                        LinearGradient(
+                                            colors: [.purple, .pink],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        ),
+                                        lineWidth: 2
+                                    )
+                            )
+                    } else {
+                        Circle()
+                            .fill(Color(.systemGray5))
+                            .frame(width: 100, height: 100)
+                            .overlay {
+                                Image(systemName: "person.fill")
+                                    .font(.system(size: 40))
+                                    .foregroundColor(.secondary)
+                            }
+                    }
+
+                    Text("Selfie")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Button(action: { showRetakeSelfie = true }) {
+                        Text("Change")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundColor(.purple)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+
+                // Full Body Photo
+                VStack(spacing: 8) {
+                    if let fullBodyImage = profile.fullBodyImage {
+                        Image(uiImage: fullBodyImage)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 100, height: 140)
+                            .clipped()
+                            .cornerRadius(12)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(
+                                        LinearGradient(
+                                            colors: [.purple, .pink],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        ),
+                                        lineWidth: 2
+                                    )
+                            )
+                    } else {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color(.systemGray5))
+                            .frame(width: 100, height: 140)
+                            .overlay {
+                                Image(systemName: "person.fill")
+                                    .font(.system(size: 40))
+                                    .foregroundColor(.secondary)
+                            }
+                    }
+
+                    Text("Full Body")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Button(action: { showRetakeFullBody = true }) {
+                        Text("Change")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundColor(.purple)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .padding()
+            .background(Color(.systemBackground))
+            .cornerRadius(16)
+            .shadow(color: .black.opacity(0.05), radius: 5, y: 2)
+        }
     }
 
     // MARK: - Quick Actions
@@ -739,8 +872,8 @@ struct TryOnTab: View {
 
             ForEach(recentTryOns.prefix(3)) { result in
                 RecentTryOnCard(result: result) {
+                    print("🖼️ [TryOnTab] Try-on result tapped: \(result.id)")
                     selectedResult = result
-                    showResult = true
                 }
             }
         }
