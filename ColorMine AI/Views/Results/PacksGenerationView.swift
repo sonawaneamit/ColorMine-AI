@@ -176,7 +176,11 @@ struct PacksGenerationView: View {
                 updatedProfile.packsGenerated.textures = true
                 appState.saveProfile(updatedProfile)
                 } catch {
+                    print("❌ Texture Pack generation failed: \(error.localizedDescription)")
                     errorMessage = "Texture Pack: \(error.localizedDescription)"
+                    // Mark as attempted (failed) to prevent infinite retry
+                    updatedProfile.packsGenerated.textures = true
+                    appState.saveProfile(updatedProfile)
                 }
                 } else {
                     print("✅ Texture Pack already generated, skipping")
@@ -205,7 +209,11 @@ struct PacksGenerationView: View {
                 updatedProfile.packsGenerated.jewelry = true
                 appState.saveProfile(updatedProfile)
                 } catch {
+                    print("❌ Jewelry Pack generation failed: \(error.localizedDescription)")
                     errorMessage = "Jewelry Pack: \(error.localizedDescription)"
+                    // Mark as attempted (failed) to prevent infinite retry
+                    updatedProfile.packsGenerated.jewelry = true
+                    appState.saveProfile(updatedProfile)
                 }
                 } else {
                     print("✅ Jewelry Pack already generated, skipping")
@@ -235,7 +243,11 @@ struct PacksGenerationView: View {
                 updatedProfile.packsGenerated.makeup = true
                 appState.saveProfile(updatedProfile)
                 } catch {
+                    print("❌ Makeup Pack generation failed: \(error.localizedDescription)")
                     errorMessage = "Makeup Pack: \(error.localizedDescription)"
+                    // Mark as attempted (failed) to prevent infinite retry
+                    updatedProfile.packsGenerated.makeup = true
+                    appState.saveProfile(updatedProfile)
                 }
                 } else {
                     print("✅ Makeup Pack already generated, skipping")
@@ -263,7 +275,11 @@ struct PacksGenerationView: View {
                 updatedProfile.packsGenerated.hairColor = true
                 appState.saveProfile(updatedProfile)
                 } catch {
+                    print("❌ Hair Color Pack generation failed: \(error.localizedDescription)")
                     errorMessage = "Hair Color Pack: \(error.localizedDescription)"
+                    // Mark as attempted (failed) to prevent infinite retry
+                    updatedProfile.packsGenerated.hairColor = true
+                    appState.saveProfile(updatedProfile)
                 }
                 } else {
                     print("✅ Hair Color Pack already generated, skipping")

@@ -29,7 +29,8 @@ struct ProfileDashboardView: View {
         Group {
             // If focus color is nil, user should be back at drapes selection
             // This handles the case when regenerateFromFocusColor() is called
-            if profile.focusColor == nil || !profile.packsGenerated.allGenerated(selectedPacks: profile.selectedPacks) {
+            // Note: We show dashboard even if some packs failed - let user see what succeeded
+            if profile.focusColor == nil {
                 // Don't show dashboard - let RootView handle routing
                 Color.clear
                     .onAppear {
