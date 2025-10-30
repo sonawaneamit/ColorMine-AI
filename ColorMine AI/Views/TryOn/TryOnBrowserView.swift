@@ -185,38 +185,62 @@ struct TryOnBrowserView: View {
                 return
             }
 
-            // Analyze garment color (on-device)
+            // Analyze garment color using OpenAI
             let season = profile.season
-            let palette = profile.favoriteColors
-            let analysis = ColorMatchingService.shared.analyzeGarment(
-                screenshot,
-                userSeason: season,
-                userPalette: palette
-            )
 
-            // Create garment item with color analysis
-            // If no store, try to extract domain from current URL
-            let source = storeName ?? currentURL?.host ?? "Web"
+            print("🎨 Analyzing garment color with OpenAI...")
 
-            let garment = GarmentItem(
-                imageURL: garmentURL,
-                sourceStore: source,
-                dominantColorHex: analysis.dominantColorHex,
-                matchesUserSeason: analysis.matchesSeason,
-                colorMatchScore: analysis.matchScore
-            )
+            Task {
+                do {
+                    let analysis = try await OpenAIService.shared.analyzeGarmentColor(
+                        garmentImage: screenshot,
+                        userSeason: season
+                    )
 
-            // Add to profile
-            profile.savedGarments.append(garment)
-            appState.saveProfile(profile)
+                    // Create garment item with OpenAI analysis
+                    // If no store, try to extract domain from current URL
+                    let source = storeName ?? currentURL?.host ?? "Web"
 
-            print("✅ Garment saved: \(garment.id)")
+                    let garment = GarmentItem(
+                        imageURL: garmentURL,
+                        sourceStore: source,
+                        dominantColorHex: nil, // No longer needed with OpenAI
+                        matchesUserSeason: analysis.matchScore >= 70,
+                        colorMatchScore: analysis.matchScore
+                    )
 
-            // Haptic feedback
-            HapticManager.shared.success()
+                    // Add to profile
+                    profile.savedGarments.append(garment)
+                    appState.saveProfile(profile)
 
-            // Show confirmation
-            showSaveConfirmation = true
+                    print("✅ Garment saved: \(garment.id) with \(analysis.matchScore)% match")
+                    print("🧠 OpenAI reasoning: \(analysis.reasoning)")
+
+                    // Haptic feedback
+                    await MainActor.run {
+                        HapticManager.shared.success()
+                        showSaveConfirmation = true
+                    }
+                } catch {
+                    print("❌ Failed to analyze garment color: \(error.localizedDescription)")
+                    // Still save garment but without color analysis
+                    let source = storeName ?? currentURL?.host ?? "Web"
+                    let garment = GarmentItem(
+                        imageURL: garmentURL,
+                        sourceStore: source,
+                        dominantColorHex: nil,
+                        matchesUserSeason: false,
+                        colorMatchScore: nil // No score if analysis failed
+                    )
+                    profile.savedGarments.append(garment)
+                    appState.saveProfile(profile)
+
+                    await MainActor.run {
+                        HapticManager.shared.success()
+                        showSaveConfirmation = true
+                    }
+                }
+            }
         }
     }
 }
