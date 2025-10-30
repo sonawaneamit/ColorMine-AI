@@ -57,13 +57,24 @@ class ColorAnalyzer {
         let relativeContrast = calculateRelativeContrast(from: cgImage, faceObservation: faceObservation, skinRGB: rgb)
         print("👁️ Relative contrast: \(String(format: "%.3f", relativeContrast))")
 
-        // Match season with chroma gates
-        let season = matchSeasonWithChroma(
+        // Sample iris color for eye hue detection
+        var eyeHueIsCool = false
+        if let irisRGB = sampleIrisColor(from: cgImage, faceObservation: faceObservation) {
+            let irisLAB = rgbToLab(r: irisRGB.r, g: irisRGB.g, b: irisRGB.b)
+            eyeHueIsCool = calculateEyeHueIsCool(skinLAB: lab, irisLAB: irisLAB)
+            print("👁️ Iris sampled - eyeHueIsCool: \(eyeHueIsCool)")
+        } else {
+            print("⚠️ Could not sample iris, defaulting eyeHueIsCool to false")
+        }
+
+        // Match season with improved algorithm (chroma gates + eye coolness)
+        let season = matchSeasonImproved(
             undertone: undertone,
             depth: depth,
             contrast: contrast,
             skinChroma: skinChroma,
-            relativeContrast: relativeContrast
+            eyeHueIsCool: eyeHueIsCool,
+            backgroundIsWarm: nil  // Future enhancement: detect background warmth
         )
         print("🍂 Matched season: \(season.rawValue)")
 
@@ -469,107 +480,292 @@ class ColorAnalyzer {
         return samples > 0 ? totalDiff / CGFloat(samples) : 0
     }
 
-    // MARK: - Season Matching with Chroma Gates (Fixed Autumn Bias)
-    private func matchSeasonWithChroma(
+    // MARK: - Iris Sampling for Eye Hue Detection
+    /// Samples the iris/pupil area to determine if eyes are cooler than skin
+    private func sampleIrisColor(from cgImage: CGImage, faceObservation: VNFaceObservation) -> (r: CGFloat, g: CGFloat, b: CGFloat)? {
+        let imageSize = CGSize(width: cgImage.width, height: cgImage.height)
+        let boundingBox = faceObservation.boundingBox
+
+        // Sample iris center - left eye (more toward center than sclera)
+        let irisX = (boundingBox.origin.x + boundingBox.width * 0.35) * imageSize.width
+        let irisY = (1 - boundingBox.origin.y - boundingBox.height * 0.6) * imageSize.height
+
+        var irisColors: [(r: CGFloat, g: CGFloat, b: CGFloat)] = []
+
+        // Sample multiple points in iris/pupil area
+        for xOffset in [-3, 0, 3] {
+            for yOffset in [-3, 0, 3] {
+                let point = CGPoint(x: irisX + CGFloat(xOffset), y: irisY + CGFloat(yOffset))
+                if let color = getPixelColor(at: point, in: cgImage) {
+                    // Filter out very dark (pupil) and very bright (reflection) pixels
+                    let luminance = 0.299 * color.r + 0.587 * color.g + 0.114 * color.b
+                    if luminance > 0.1 && luminance < 0.8 {
+                        irisColors.append(color)
+                    }
+                }
+            }
+        }
+
+        guard !irisColors.isEmpty else { return nil }
+
+        // Average iris colors
+        let avgR = irisColors.map { $0.r }.reduce(0, +) / CGFloat(irisColors.count)
+        let avgG = irisColors.map { $0.g }.reduce(0, +) / CGFloat(irisColors.count)
+        let avgB = irisColors.map { $0.b }.reduce(0, +) / CGFloat(irisColors.count)
+
+        return (r: avgR, g: avgG, b: avgB)
+    }
+
+    // MARK: - Calculate Eye Hue Coolness
+    /// Determines if eye iris is cooler than skin tone
+    /// - Parameters:
+    ///   - skinLAB: LAB values of skin
+    ///   - irisLAB: LAB values of iris/pupil area
+    /// - Returns: True if iris is cooler/greener/bluer than skin
+    private func calculateEyeHueIsCool(
+        skinLAB: (L: CGFloat, a: CGFloat, b: CGFloat),
+        irisLAB: (L: CGFloat, a: CGFloat, b: CGFloat)
+    ) -> Bool {
+        // In LAB space:
+        // - Lower a* = more green (cooler)
+        // - Lower b* = more blue (cooler)
+
+        let skinHueScore = skinLAB.a + (skinLAB.b * 0.5)  // Weight yellow more
+        let irisHueScore = irisLAB.a + (irisLAB.b * 0.5)
+
+        // If iris score is lower, it's cooler than skin
+        return irisHueScore < (skinHueScore - 2)  // 2-point threshold
+    }
+
+    // MARK: - Improved Season Matching Function (Ethnicity-Safe, Chroma-Gated)
+    /// Determines color season using enhanced signals to eliminate Autumn bias
+    /// - Parameters:
+    ///   - undertone: Detected skin undertone (warm, cool, neutral, etc.)
+    ///   - depth: Skin depth category ("light", "medium", "deep")
+    ///   - contrast: Feature contrast level (high, medium, low)
+    ///   - skinChroma: LAB chroma value sqrt(a² + b²) - measures color clarity
+    ///   - eyeHueIsCool: True if iris is cooler/greener/bluer than skin
+    ///   - backgroundIsWarm: Optional - true if background has warm cast
+    /// - Returns: The matched ColorSeason
+    ///
+    /// Test cases:
+    /// 1. Light skin, warm undertone, high chroma (20), cool eyes, high contrast
+    ///    → Clear Spring (not Autumn!)
+    /// 2. Deep skin, warm undertone, medium chroma (15), warm eyes, high contrast
+    ///    → Warm Spring or Deep Autumn (depends on chroma and eye clarity)
+    /// 3. Deep skin, cool undertone, low chroma (8), high contrast
+    ///    → Deep Winter (not Autumn!)
+    /// 4. Medium skin, warm undertone, low chroma (10), warm eyes, low contrast
+    ///    → Soft Autumn (correctly muted)
+    /// 5. Light skin, cool undertone, high chroma (22), cool eyes, high contrast
+    ///    → Clear Winter
+    private func matchSeasonImproved(
         undertone: Undertone,
         depth: String,
         contrast: Contrast,
-        skinChroma: CGFloat,
-        relativeContrast: CGFloat
+        skinChroma: Double,
+        eyeHueIsCool: Bool,
+        backgroundIsWarm: Bool? = nil
     ) -> ColorSeason {
-        print("🔍 Matching with: undertone=\(undertone.rawValue), depth=\(depth), contrast=\(contrast.rawValue), chroma=\(String(format: "%.1f", skinChroma)), relContrast=\(String(format: "%.2f", relativeContrast))")
 
-        // CHROMA THRESHOLDS - THE KEY TO FIXING AUTUMN BIAS
-        // High chroma (>18) = clear, vivid colors → Spring/Winter
-        // Medium chroma (12-18) = moderate saturation → transitional
-        // Low chroma (<12) = muted, soft → Autumn/Summer
-
-        // ===== PRIORITY 1: WARM/WARM-NEUTRAL - SPLIT BY CHROMA =====
-        if undertone == .warm || undertone == .warmNeutral {
-            print("🔥 Warm undertone detected - checking chroma gate")
-
-            // HIGH CLARITY WARM → SPRING (not Autumn!)
-            if skinChroma > 18 {
-                print("✨ High chroma (>18) - routing to Spring")
-                if depth == "light" {
-                    return contrast == .high ? .clearSpring : .warmSpring
-                } else if depth == "medium" {
-                    return (contrast == .high || contrast == .medium) ? .warmSpring : .warmAutumn
-                } else {
-                    // Deep + warm + clear
-                    return contrast == .high ? .deepAutumn : .warmAutumn
-                }
+        // Adjust undertone if background is adding warmth
+        var adjustedUndertone = undertone
+        if let bgWarm = backgroundIsWarm, bgWarm {
+            // Shift warm/warmNeutral slightly cooler if needed
+            // This prevents false warm readings from camera/lighting
+            if undertone == .warm && skinChroma < 15 {
+                adjustedUndertone = .warmNeutral
             }
+        }
 
-            // MEDIUM CLARITY WARM → Check contrast
-            if skinChroma > 12 {
-                print("💫 Medium chroma (12-18) - contrast decides")
-                if depth == "light" {
-                    return contrast == .low ? .lightSpring : .warmSpring
-                } else if depth == "medium" {
-                    // Medium depth warm - use relative contrast
-                    if relativeContrast > 0.12 || contrast == .high {
-                        return .warmSpring  // Clearer features → Spring
-                    } else {
-                        return .warmAutumn  // Softer features → Autumn
+        // Define chroma clarity levels
+        let isHighClarity = skinChroma > 18      // Vivid, clear colors → Spring/Winter
+        let isMediumClarity = skinChroma > 12    // Moderate → transitional
+        let isLowClarity = skinChroma <= 12      // Muted → Autumn/Summer
+
+        // Define feature clarity (combines contrast + eye coolness)
+        let hasStrongFeatures = (contrast == .high) || (eyeHueIsCool && contrast == .medium)
+        let hasSoftFeatures = (contrast == .low) || (!eyeHueIsCool && contrast == .low)
+
+        print("🎨 Season matching: undertone=\(adjustedUndertone.rawValue), depth=\(depth), contrast=\(contrast.rawValue)")
+        print("   chroma=\(String(format: "%.1f", skinChroma)), eyeHueIsCool=\(eyeHueIsCool)")
+        print("   clarity: high=\(isHighClarity), medium=\(isMediumClarity), low=\(isLowClarity)")
+
+        // ========================================
+        // PRIORITY 1: WARM & WARM-NEUTRAL
+        // KEY FIX: Split by chroma to prevent Autumn over-assignment
+        // ========================================
+        if adjustedUndertone == .warm || adjustedUndertone == .warmNeutral {
+
+            // GATE 1: HIGH CLARITY WARM → SPRING (not Autumn!)
+            if isHighClarity {
+                print("✨ High chroma warm → Spring family")
+                switch depth {
+                case "light":
+                    return hasStrongFeatures ? .clearSpring : .warmSpring
+                case "medium":
+                    // Medium depth with high clarity and cool eyes → definitely Spring
+                    if eyeHueIsCool {
+                        return .clearSpring
                     }
-                } else {
-                    return contrast == .high ? .deepAutumn : .warmAutumn
+                    return (contrast == .high || contrast == .medium) ? .warmSpring : .warmAutumn
+                case "deep":
+                    // Deep + warm + clear can be Deep Autumn (not same as soft!)
+                    return hasStrongFeatures ? .deepAutumn : .warmAutumn
+                default:
+                    return .warmSpring
                 }
             }
 
-            // LOW CLARITY WARM → AUTUMN
-            print("🍂 Low chroma (<12) - routing to Autumn")
-            if depth == "deep" {
-                return contrast == .low ? .warmAutumn : .deepAutumn
-            } else if depth == "medium" {
+            // GATE 2: MEDIUM CLARITY WARM → Use eye coolness to decide
+            if isMediumClarity {
+                print("💫 Medium chroma warm → checking eye clarity")
+                switch depth {
+                case "light":
+                    return hasSoftFeatures ? .lightSpring : .warmSpring
+                case "medium":
+                    // This is the critical decision point for medium skin!
+                    // Cool eyes + medium chroma = Spring
+                    // Warm eyes + medium chroma = Autumn
+                    if eyeHueIsCool || hasStrongFeatures {
+                        return .warmSpring  // Clear features → Spring
+                    } else {
+                        return .warmAutumn  // Soft, warm features → Autumn
+                    }
+                case "deep":
+                    return hasStrongFeatures ? .deepAutumn : .warmAutumn
+                default:
+                    return .warmSpring
+                }
+            }
+
+            // GATE 3: LOW CLARITY WARM → AUTUMN (correctly muted)
+            print("🍂 Low chroma warm → Autumn family")
+            switch depth {
+            case "deep":
+                return hasSoftFeatures ? .warmAutumn : .deepAutumn
+            case "medium":
                 return .softAutumn
-            } else {
-                return contrast == .low ? .lightSpring : .warmSpring
+            case "light":
+                // Even light skin can be Autumn if muted enough
+                return hasSoftFeatures ? .softAutumn : .warmSpring
+            default:
+                return .softAutumn
             }
         }
 
-        // ===== PRIORITY 2: COOL UNDERTONES =====
-        if undertone == .cool {
-            if depth == "deep" {
-                return (contrast == .high || contrast == .medium) ? .deepWinter : .coolWinter
-            } else if depth == "medium" {
-                return contrast == .high ? .clearWinter : (contrast == .medium ? .coolSummer : .softSummer)
-            } else {
-                return contrast == .high ? .clearWinter : (contrast == .medium ? .lightSummer : .softSummer)
-            }
-        }
+        // ========================================
+        // PRIORITY 2: COOL UNDERTONES
+        // Cool = Winter or Summer (never Autumn!)
+        // ========================================
+        if adjustedUndertone == .cool {
+            print("❄️ Cool undertone → Winter/Summer family")
 
-        // ===== PRIORITY 3: COOL NEUTRAL =====
-        if undertone == .coolNeutral {
-            if depth == "deep" {
-                return contrast == .high ? .deepWinter : .coolWinter
-            } else if depth == "medium" {
-                return contrast == .high ? .clearWinter : (contrast == .medium ? .coolSummer : .softSummer)
-            } else {
-                return contrast == .high ? .clearWinter : (contrast == .medium ? .lightSummer : .lightSpring)
-            }
-        }
+            switch depth {
+            case "deep":
+                // Deep + cool = Winter (high contrast) or Cool Summer (softer)
+                return hasStrongFeatures ? .deepWinter : .coolWinter
 
-        // ===== PRIORITY 4: NEUTRAL =====
-        // Use relative contrast to decide cool vs warm direction
-        if undertone == .neutral {
-            if depth == "deep" {
-                return contrast == .high ? .deepAutumn : .softAutumn
-            } else if depth == "medium" {
-                // Key decision: does person lean cool or warm?
-                if relativeContrast < 0.08 {
-                    return .softSummer  // Low feature contrast → cooler
+            case "medium":
+                if isHighClarity || hasStrongFeatures {
+                    return .clearWinter
+                } else if isMediumClarity {
+                    return contrast == .medium ? .coolSummer : .softSummer
                 } else {
-                    return contrast == .high ? .warmAutumn : .softAutumn
+                    return .softSummer
                 }
-            } else {
-                return contrast == .high ? .clearSpring : .lightSpring
+
+            case "light":
+                if isHighClarity || hasStrongFeatures {
+                    return .clearWinter
+                } else if isMediumClarity {
+                    return .lightSummer
+                } else {
+                    return .softSummer
+                }
+
+            default:
+                return .coolWinter
             }
         }
 
-        // Fallback (should rarely hit)
-        return .softAutumn
+        // ========================================
+        // PRIORITY 3: COOL-NEUTRAL
+        // Slightly warmer than cool, but still Summer/Winter dominant
+        // ========================================
+        if adjustedUndertone == .coolNeutral {
+            print("🌸 Cool-neutral undertone → Winter/Summer family")
+
+            switch depth {
+            case "deep":
+                return hasStrongFeatures ? .deepWinter : .coolWinter
+
+            case "medium":
+                if hasStrongFeatures {
+                    return .clearWinter
+                } else if isMediumClarity {
+                    return .coolSummer
+                } else {
+                    return .softSummer
+                }
+
+            case "light":
+                if hasStrongFeatures {
+                    return .clearWinter
+                } else if isMediumClarity {
+                    // Can lean Spring if eyes are very cool and clear
+                    return eyeHueIsCool ? .lightSpring : .lightSummer
+                } else {
+                    return .lightSummer
+                }
+
+            default:
+                return .coolSummer
+            }
+        }
+
+        // ========================================
+        // PRIORITY 4: NEUTRAL
+        // Use chroma + eye coolness to decide cool vs warm direction
+        // ========================================
+        if adjustedUndertone == .neutral {
+            print("⚖️ Neutral undertone → using chroma + eyes to decide")
+
+            switch depth {
+            case "deep":
+                // Deep neutral with cool eyes → Winter (not Autumn!)
+                if eyeHueIsCool && hasStrongFeatures {
+                    return .deepWinter
+                }
+                return hasStrongFeatures ? .deepAutumn : .softAutumn
+
+            case "medium":
+                // This is nuanced - need both signals
+                if eyeHueIsCool {
+                    // Cool eyes suggest Summer/Winter
+                    return isLowClarity ? .softSummer : .coolSummer
+                } else {
+                    // Warm eyes suggest Autumn/Spring
+                    return hasStrongFeatures ? .warmAutumn : .softAutumn
+                }
+
+            case "light":
+                // Light neutral usually leans Spring or Summer
+                if eyeHueIsCool && isMediumClarity {
+                    return .lightSummer
+                }
+                return hasStrongFeatures ? .clearSpring : .lightSpring
+
+            default:
+                return .softAutumn
+            }
+        }
+
+        // ========================================
+        // FALLBACK (should rarely hit this)
+        // ========================================
+        print("⚠️ Using fallback season logic")
+        return depth == "deep" ? .deepWinter : .softAutumn
     }
 
     // MARK: - Confidence Calculation
