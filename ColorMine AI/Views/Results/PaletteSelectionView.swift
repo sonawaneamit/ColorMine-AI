@@ -19,6 +19,7 @@ struct PaletteSelectionView: View {
     @State private var currentSeason: ColorSeason
     @State private var editingColor: ColorSwatch?
     @State private var showColorPicker = false
+    @State private var customPalette: [ColorSwatch] = []  // Mutable palette for edits
 
     init(profile: UserProfile) {
         self.profile = profile
@@ -199,9 +200,8 @@ struct PaletteSelectionView: View {
                     }
 
                     // Color palette grid
-                    let palette = SeasonPalettes.palette(for: currentSeason)
                     LazyVGrid(columns: columns, spacing: 12) {
-                        ForEach(palette) { swatch in
+                        ForEach(customPalette) { swatch in
                             ColorSwatchButton(
                                 swatch: swatch,
                                 isSelected: selectedColors.contains(swatch),
@@ -216,6 +216,12 @@ struct PaletteSelectionView: View {
                         }
                     }
                     .padding(.horizontal)
+                    .onAppear {
+                        // Initialize palette if empty
+                        if customPalette.isEmpty {
+                            customPalette = SeasonPalettes.palette(for: currentSeason)
+                        }
+                    }
 
                     // Error message
                     if let error = errorMessage {
@@ -362,6 +368,8 @@ struct PaletteSelectionView: View {
         currentSeason = newSeason
         // Clear selected colors when season changes
         selectedColors.removeAll()
+        // Reset palette to new season's colors
+        customPalette = SeasonPalettes.palette(for: newSeason)
 
         // Update profile with new season
         var updatedProfile = profile
@@ -371,6 +379,11 @@ struct PaletteSelectionView: View {
 
     // MARK: - Update Color
     private func updateColor(original: ColorSwatch, new: ColorSwatch) {
+        // Update the color in the custom palette
+        if let index = customPalette.firstIndex(where: { $0.id == original.id }) {
+            customPalette[index] = new
+        }
+
         // If the original color was selected, replace it with the new one
         if selectedColors.contains(original) {
             selectedColors.remove(original)
@@ -488,8 +501,21 @@ struct ColorEditSheet: View {
                         )
                         .shadow(radius: 8)
 
-                    Text(colorName)
-                        .font(.headline)
+                    // Editable color name
+                    VStack(spacing: 6) {
+                        TextField("Color Name", text: $colorName)
+                            .font(.headline)
+                            .multilineTextAlignment(.center)
+                            .textFieldStyle(.plain)
+                            .padding(.horizontal, 40)
+                            .padding(.vertical, 12)
+                            .background(Color(.systemGray6))
+                            .cornerRadius(10)
+
+                        Text("Tap to edit name")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                 }
                 .padding(.top, 40)
 
