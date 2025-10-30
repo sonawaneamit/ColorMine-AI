@@ -78,14 +78,17 @@ struct ProfileDashboardView: View {
     // MARK: - Regenerate from Focus Color
     private func regenerateFromFocusColor() {
         var updatedProfile = profile
-        // Clear focus color and all generated packs
+        // Clear focus color and all generated packs (keep drapes)
         updatedProfile.focusColor = nil
+        updatedProfile.hasChosenPacks = false
         updatedProfile.texturePackImageURL = nil
         updatedProfile.jewelryPackImageURL = nil
         updatedProfile.makeupPackImageURL = nil
+        updatedProfile.hairColorPackImageURL = nil
         updatedProfile.packsGenerated.textures = false
         updatedProfile.packsGenerated.jewelry = false
         updatedProfile.packsGenerated.makeup = false
+        updatedProfile.packsGenerated.hairColor = false
         updatedProfile.packsGenerated.contrastCard = false
         updatedProfile.packsGenerated.neutralsMetalsCard = false
         appState.saveProfile(updatedProfile)

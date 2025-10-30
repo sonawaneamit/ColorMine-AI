@@ -106,6 +106,21 @@ struct DrapesGridView: View {
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 30)
+
+                        // Reassurance message
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .font(.caption)
+                                .foregroundColor(.purple.opacity(0.7))
+                            Text("Don't worry! You can change your focus color anytime later")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.horizontal, 30)
+                        .padding(.vertical, 8)
+                        .background(Color.purple.opacity(0.1))
+                        .cornerRadius(8)
+                        .padding(.top, 4)
                     }
 
                     // Favorite colors selection
