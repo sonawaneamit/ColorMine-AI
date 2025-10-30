@@ -16,8 +16,8 @@ ColorMine AI offers **auto-renewable subscriptions** that give users unlimited a
 
 | Plan | Duration | Price | Best For |
 |------|----------|-------|----------|
-| **Weekly** | 7 days | **$4.99** | Trial users, short-term needs |
-| **Monthly** | 30 days | **$15.99** | Regular users (most popular) |
+| **Weekly** | 7 days | **$6.99** | Trial users, short-term needs |
+| **Monthly** | 30 days | **$19.99** | Regular users (most popular) |
 
 ---
 
@@ -51,7 +51,7 @@ Click the **+** button in the subscription group to add a new subscription.
 
 ### Subscription Pricing
 
-- **Price**: `$4.99 USD` (Tier 5 or find $4.99 in pricing)
+- **Price**: `$6.99 USD` (Tier 7 or find $6.99 in pricing)
 - **Territories**: All territories (or select specific regions)
 
 ### Subscription Localizations (English - U.S.)
@@ -104,7 +104,7 @@ Click **+** again in the subscription group to add the second subscription.
 
 ### Subscription Pricing
 
-- **Price**: `$15.99 USD` (Tier 16 or find $15.99 in pricing)
+- **Price**: `$19.99 USD` (Tier 20 or find $19.99 in pricing)
 - **Territories**: All territories (or select specific regions)
 
 ### Subscription Localizations (English - U.S.)
@@ -120,7 +120,7 @@ Get full access to ColorMine AI's professional color analysis tools:
 • Personalized makeup, hair, and wardrobe palettes
 • All current and future premium features
 
-Your subscription automatically renews monthly. Cancel anytime in Settings. Save 20% compared to weekly!
+Your subscription automatically renews monthly. Cancel anytime in Settings. Save 34% compared to weekly!
 ```
 
 ### Review Information
@@ -279,27 +279,28 @@ Users can manage/cancel subscriptions:
 
 ### Why These Prices?
 
-**Weekly ($4.99)**:
-- Low entry barrier
+**Weekly ($6.99)**:
+- Low entry barrier for new users
 - Good for users wanting to "try before commit"
-- Annual value: ~$260 if user keeps it
+- Allows short-term access without long commitment
+- Annual value: ~$363 if user keeps it
 
-**Monthly ($15.99)**:
+**Monthly ($19.99)**:
 - Sweet spot for pricing
-- Saves 20% vs weekly ($19.96/month if paid weekly)
-- Shows value of committing monthly
-- Annual value: ~$192
+- Saves 34% vs weekly ($30.26/month if paid weekly)
+- Shows clear value of committing monthly
+- Annual value: ~$240
 
 ### Price Comparison
 
 | Duration | Price | Per Month | Annual Cost |
 |----------|-------|-----------|-------------|
-| Weekly | $4.99 | $19.96* | $259.48 |
-| Monthly | $15.99 | $15.99 | $191.88 |
+| Weekly | $6.99 | $30.26* | $363.48 |
+| Monthly | $19.99 | $19.99 | $239.88 |
 
-*If paid weekly throughout the month
+*If paid weekly throughout the month (4.33 weeks)
 
-**The monthly plan saves users ~$68/year (26% savings)**
+**The monthly plan saves users ~$124/year (34% savings)**
 
 ---
 

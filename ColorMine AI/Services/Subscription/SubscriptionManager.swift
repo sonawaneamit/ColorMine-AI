@@ -151,8 +151,8 @@ class SubscriptionManager: ObservableObject {
 
 // MARK: - Subscription Tier
 enum SubscriptionTier {
-    case weekly  // $4.99
-    case monthly // $15.99
+    case weekly  // $6.99
+    case monthly // $19.99
 
     var displayName: String {
         switch self {

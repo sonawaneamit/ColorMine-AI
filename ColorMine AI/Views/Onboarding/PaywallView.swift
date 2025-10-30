@@ -87,7 +87,7 @@ struct PaywallView: View {
                         // Monthly
                         SubscriptionTierCard(
                             tier: .monthly,
-                            price: "$15.99",
+                            price: "$19.99",
                             period: "per month",
                             isSelected: selectedTier == .monthly
                         ) {
@@ -97,7 +97,7 @@ struct PaywallView: View {
                         // Weekly
                         SubscriptionTierCard(
                             tier: .weekly,
-                            price: "$4.99",
+                            price: "$6.99",
                             period: "per week",
                             isSelected: selectedTier == .weekly
                         ) {
