@@ -344,12 +344,14 @@ struct CreditPackCard: View {
 
     private var creditAmount: Int {
         switch product.id {
-        case "com.colormine.tryon.credits.10":
-            return 10
+        case "com.colormine.tryon.credits.1":
+            return 1
+        case "com.colormine.tryon.credits.5":
+            return 5
+        case "com.colormine.tryon.credits.15":
+            return 15
         case "com.colormine.tryon.credits.30":
             return 30
-        case "com.colormine.tryon.credits.100":
-            return 100
         default:
             return 0
         }
@@ -359,8 +361,28 @@ struct CreditPackCard: View {
         creditAmount / 3
     }
 
+    private var savingsPercentage: Int? {
+        // Calculate savings compared to 1 credit price ($6.99)
+        switch creditAmount {
+        case 1:
+            return nil // No savings on base price
+        case 5:
+            return 57 // $3.00 vs $6.99 = 57% off
+        case 15:
+            return 68 // $2.27 vs $6.99 = 68% off
+        case 30:
+            return 74 // $1.83 vs $6.99 = 74% off
+        default:
+            return nil
+        }
+    }
+
     private var isPopular: Bool {
-        creditAmount == 30
+        creditAmount == 15 // Most popular pack
+    }
+
+    private var isBestValue: Bool {
+        creditAmount == 30 // Best value per credit
     }
 
     var body: some View {
@@ -368,7 +390,7 @@ struct CreditPackCard: View {
             HStack {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 8) {
-                        Text("\(creditAmount) Credits")
+                        Text("\(creditAmount) Credit\(creditAmount == 1 ? "" : "s")")
                             .font(.headline)
                             .foregroundColor(.primary)
 
@@ -383,12 +405,32 @@ struct CreditPackCard: View {
                                     Capsule()
                                         .fill(Color.purple)
                                 )
+                        } else if isBestValue {
+                            Text("BEST VALUE")
+                                .font(.caption2)
+                                .fontWeight(.bold)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(
+                                    Capsule()
+                                        .fill(Color.green)
+                                )
                         }
                     }
 
-                    Text("~\(tryOnCount) try-ons")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    if tryOnCount > 0 {
+                        Text("~\(tryOnCount) try-on\(tryOnCount == 1 ? "" : "s")")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
+                    if let savings = savingsPercentage {
+                        Text("Save \(savings)%")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.green)
+                    }
                 }
 
                 Spacer()
@@ -404,7 +446,7 @@ struct CreditPackCard: View {
                     .fill(Color(.systemBackground))
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .stroke(isPopular ? Color.purple : Color.clear, lineWidth: 2)
+                            .stroke(isPopular || isBestValue ? Color.purple : Color.clear, lineWidth: 2)
                     )
             )
         }

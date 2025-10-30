@@ -18,9 +18,10 @@ class CreditsManager: ObservableObject {
 
     // Product IDs (must match App Store Connect)
     private let productIDs = [
-        "com.colormine.tryon.credits.10",   // 10 credits - $2.99
-        "com.colormine.tryon.credits.30",   // 30 credits - $7.99
-        "com.colormine.tryon.credits.100"   // 100 credits - $19.99
+        "com.colormine.tryon.credits.1",    // 1 credit - $6.99
+        "com.colormine.tryon.credits.5",    // 5 credits - $15.00 ($3.00 ea, save 57%)
+        "com.colormine.tryon.credits.15",   // 15 credits - $34.05 ($2.27 ea, save 68%)
+        "com.colormine.tryon.credits.30"    // 30 credits - $54.90 ($1.83 ea, save 74%)
     ]
 
     private var updateListenerTask: Task<Void, Error>?
@@ -136,12 +137,14 @@ class CreditsManager: ObservableObject {
     /// Get credits amount for a product
     private func creditsForProduct(_ product: Product) -> Int {
         switch product.id {
-        case "com.colormine.tryon.credits.10":
-            return 10
+        case "com.colormine.tryon.credits.1":
+            return 1
+        case "com.colormine.tryon.credits.5":
+            return 5
+        case "com.colormine.tryon.credits.15":
+            return 15
         case "com.colormine.tryon.credits.30":
             return 30
-        case "com.colormine.tryon.credits.100":
-            return 100
         default:
             return 0
         }
