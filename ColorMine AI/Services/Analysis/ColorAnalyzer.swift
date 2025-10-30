@@ -12,16 +12,46 @@ import Vision
 class ColorAnalyzer {
     static let shared = ColorAnalyzer()
 
+    // MARK: - Analysis Method Toggle
+    /// Set to true to use Gemini AI for season analysis (uses API credits)
+    /// Set to false to use on-device ML analysis (free, works offline)
+    public var useGeminiAI = true  // ✅ Try Gemini first!
+
     private init() {}
 
-    // MARK: - Main Analysis
-    func analyzeSkinTone(from image: UIImage, faceObservation: VNFaceObservation) -> (
+    // MARK: - Main Analysis (Async Wrapper)
+    /// Analyzes skin tone using either Gemini AI or on-device ML based on useGeminiAI flag
+    func analyzeSkinTone(from image: UIImage, faceObservation: VNFaceObservation) async throws -> (
         season: ColorSeason,
         undertone: Undertone,
         contrast: Contrast,
         confidence: Double
     ) {
-        print("🎨 Starting color analysis...")
+        if useGeminiAI {
+            print("🤖 Using Gemini AI for season analysis")
+            do {
+                let result = try await GeminiService.shared.analyzeSeasonWithAI(selfieImage: image)
+                return result
+            } catch {
+                print("⚠️ Gemini AI failed, falling back to on-device ML: \(error.localizedDescription)")
+                // Fallback to on-device analysis if Gemini fails
+                return analyzeSkinToneOnDevice(from: image, faceObservation: faceObservation)
+            }
+        } else {
+            print("📱 Using on-device ML for season analysis")
+            return analyzeSkinToneOnDevice(from: image, faceObservation: faceObservation)
+        }
+    }
+
+    // MARK: - On-Device Analysis
+    /// Original on-device ML analysis using LAB color space and chroma gates
+    private func analyzeSkinToneOnDevice(from image: UIImage, faceObservation: VNFaceObservation) -> (
+        season: ColorSeason,
+        undertone: Undertone,
+        contrast: Contrast,
+        confidence: Double
+    ) {
+        print("🎨 Starting on-device color analysis...")
 
         guard let cgImage = image.cgImage else {
             print("❌ ERROR: cgImage is nil, returning default softAutumn")

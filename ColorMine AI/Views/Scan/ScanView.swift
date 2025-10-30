@@ -156,8 +156,8 @@ struct ScanView: View {
                 // Detect face
                 let faceObservation = try await VisionService.shared.detectFaceLandmarks(in: image)
 
-                // Analyze colors
-                let result = ColorAnalyzer.shared.analyzeSkinTone(from: image, faceObservation: faceObservation)
+                // Analyze colors (supports both Gemini AI and on-device ML)
+                let result = try await ColorAnalyzer.shared.analyzeSkinTone(from: image, faceObservation: faceObservation)
 
                 // Save selfie data
                 let imageData = image.jpegData(compressionQuality: 0.8)

@@ -26,6 +26,195 @@ class GeminiService {
 
     private init() {}
 
+    // MARK: - AI-Based Season Analysis
+    /// Uses Gemini Vision API to analyze color season from selfie
+    /// Alternative to on-device ColorAnalyzer for comparison
+    func analyzeSeasonWithAI(selfieImage: UIImage) async throws -> (
+        season: ColorSeason,
+        undertone: Undertone,
+        contrast: Contrast,
+        confidence: Double
+    ) {
+        // Convert image to base64
+        guard let imageData = selfieImage.jpegData(compressionQuality: 0.8) else {
+            throw GeminiError.invalidImage
+        }
+        let base64Image = imageData.base64EncodedString()
+
+        // Build request URL using VISION model for analysis
+        let endpoint = "\(baseURL)/\(visionModel):generateContent"
+        guard var urlComponents = URLComponents(string: endpoint) else {
+            throw GeminiError.invalidURL
+        }
+        urlComponents.queryItems = [URLQueryItem(name: "key", value: apiKey)]
+        guard let url = urlComponents.url else {
+            throw GeminiError.invalidURL
+        }
+
+        // Create comprehensive prompt for season analysis
+        let prompt = """
+        You are an expert color analyst specializing in seasonal color analysis.
+
+        Analyze this person's photo and determine their color season using the 12-season system.
+
+        THE 12 SEASONAL COLOR SEASONS:
+
+        SPRING FAMILY (warm undertone):
+        - Clear Spring: warm, high contrast, clear/bright colors
+        - Warm Spring: warm, medium-high contrast, golden warm tones
+        - Light Spring: warm-neutral, light depth, soft pastels with warmth
+
+        SUMMER FAMILY (cool undertone):
+        - Light Summer: cool-neutral, light depth, soft pastels with coolness
+        - Cool Summer: cool, medium contrast, muted cool tones
+        - Soft Summer: cool-neutral, low contrast, very muted soft colors
+
+        AUTUMN FAMILY (warm undertone):
+        - Soft Autumn: warm-neutral, low contrast, very muted warm tones
+        - Warm Autumn: warm, medium contrast, rich earthy tones
+        - Deep Autumn: warm, high contrast, deep rich warm colors
+
+        WINTER FAMILY (cool undertone):
+        - Deep Winter: cool, very high contrast, deep cool dramatic colors
+        - Cool Winter: cool, high contrast, icy cool tones
+        - Clear Winter: cool-neutral, high contrast, clear vivid colors
+
+        ANALYSIS FACTORS:
+        1. UNDERTONE: Is the skin warm (golden/yellow), cool (pink/blue), or neutral?
+        2. DEPTH: Is the overall coloring light, medium, or deep?
+        3. CONTRAST: High (strong difference between skin/hair/eyes), Medium, or Low contrast?
+        4. CHROMA/CLARITY: Are their colors clear and vivid, or soft and muted?
+        5. EYE COLOR: What is the iris color and is it cooler or warmer than the skin?
+
+        IMPORTANT NOTES FOR ACCURACY:
+        - Deep skin + warm undertone does NOT automatically mean Autumn
+        - Check chroma: warm + high clarity = Spring, warm + low clarity = Autumn
+        - Deep skin + cool undertone = Winter (often Deep Winter)
+        - Medium skin + warm + clear features = likely Spring, not Autumn
+        - Look at the eyes: cool/clear eyes often indicate Spring or Winter even with warm skin
+
+        RESPOND IN THIS EXACT JSON FORMAT:
+        {
+          "season": "one of: clearSpring, warmSpring, lightSpring, lightSummer, coolSummer, softSummer, softAutumn, warmAutumn, deepAutumn, deepWinter, coolWinter, clearWinter",
+          "undertone": "one of: warm, warmNeutral, neutral, coolNeutral, cool",
+          "contrast": "one of: high, medium, low",
+          "depth": "one of: light, medium, deep",
+          "confidence": 0.XX (between 0.50 and 0.98),
+          "reasoning": "Brief explanation of why this season was chosen, mentioning undertone, chroma, contrast, and eye color"
+        }
+
+        Analyze the photo now and respond with ONLY valid JSON, no other text.
+        """
+
+        // Build request body
+        let requestBody: [String: Any] = [
+            "contents": [
+                [
+                    "parts": [
+                        ["text": prompt],
+                        [
+                            "inline_data": [
+                                "mime_type": "image/jpeg",
+                                "data": base64Image
+                            ]
+                        ]
+                    ]
+                ]
+            ],
+            "generationConfig": [
+                "temperature": 0.3,  // Lower temp for more consistent analysis
+                "topK": 32,
+                "topP": 1,
+                "maxOutputTokens": 2048
+            ]
+        ]
+
+        // Create request
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+
+        print("🤖 Requesting Gemini AI season analysis...")
+
+        // Make API call
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw GeminiError.invalidResponse
+        }
+
+        // Check status code
+        guard httpResponse.statusCode == 200 else {
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let error = json["error"] as? [String: Any],
+               let message = error["message"] as? String {
+                print("❌ Gemini API Error: \(message)")
+                throw GeminiError.apiErrorWithMessage(message)
+            }
+            throw GeminiError.apiError(statusCode: httpResponse.statusCode)
+        }
+
+        // Parse response
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let candidates = json["candidates"] as? [[String: Any]],
+              let firstCandidate = candidates.first,
+              let content = firstCandidate["content"] as? [String: Any],
+              let parts = content["parts"] as? [[String: Any]],
+              let firstPart = parts.first,
+              let textResponse = firstPart["text"] as? String else {
+            print("❌ Could not parse Gemini response")
+            throw GeminiError.invalidResponse
+        }
+
+        print("📝 Gemini response: \(textResponse)")
+
+        // Clean up response - remove markdown code blocks if present
+        var cleanedResponse = textResponse.trimmingCharacters(in: .whitespacesAndNewlines)
+        if cleanedResponse.hasPrefix("```json") {
+            cleanedResponse = cleanedResponse.replacingOccurrences(of: "```json", with: "")
+            cleanedResponse = cleanedResponse.replacingOccurrences(of: "```", with: "")
+            cleanedResponse = cleanedResponse.trimmingCharacters(in: .whitespacesAndNewlines)
+        } else if cleanedResponse.hasPrefix("```") {
+            cleanedResponse = cleanedResponse.replacingOccurrences(of: "```", with: "")
+            cleanedResponse = cleanedResponse.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        // Parse JSON from text response
+        guard let jsonData = cleanedResponse.data(using: .utf8),
+              let analysisResult = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] else {
+            print("❌ Could not parse JSON from Gemini text response")
+            print("❌ Response was: \(cleanedResponse)")
+            throw GeminiError.invalidResponse
+        }
+
+        // Extract values
+        guard let seasonString = analysisResult["season"] as? String,
+              let undertoneString = analysisResult["undertone"] as? String,
+              let contrastString = analysisResult["contrast"] as? String,
+              let confidence = analysisResult["confidence"] as? Double else {
+            print("❌ Missing required fields in analysis result")
+            throw GeminiError.invalidResponse
+        }
+
+        // Convert strings to enums
+        guard let season = ColorSeason(rawValue: seasonString),
+              let undertone = Undertone(rawValue: undertoneString),
+              let contrast = Contrast(rawValue: contrastString) else {
+            print("❌ Invalid enum values in analysis result")
+            throw GeminiError.invalidResponse
+        }
+
+        // Log reasoning if available
+        if let reasoning = analysisResult["reasoning"] as? String {
+            print("🧠 Gemini reasoning: \(reasoning)")
+        }
+
+        print("✅ Gemini analysis complete: \(season.rawValue), \(undertone.rawValue), \(contrast.rawValue)")
+
+        return (season: season, undertone: undertone, contrast: contrast, confidence: confidence)
+    }
+
     // MARK: - Generate Drapes Grid
     func generateDrapesGrid(
         selfieImage: UIImage,
