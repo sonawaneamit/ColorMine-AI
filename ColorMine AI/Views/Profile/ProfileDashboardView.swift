@@ -209,7 +209,7 @@ struct ProfileTab: View {
 
                 // AI Packs Section
                 VStack(alignment: .leading, spacing: 16) {
-                    Text("Your AI Packs")
+                    Text("Your Style Guide")
                         .font(.title2)
                         .fontWeight(.bold)
                         .padding(.horizontal)
@@ -220,7 +220,7 @@ struct ProfileTab: View {
                             Image(systemName: "wand.and.stars")
                                 .font(.system(size: 50))
                                 .foregroundColor(.purple.opacity(0.5))
-                            Text("Your AI packs are being generated")
+                            Text("Your personalized guide is being created")
                                 .font(.headline)
                             Text("This may take 2-3 minutes")
                                 .font(.subheadline)
@@ -237,8 +237,8 @@ struct ProfileTab: View {
                     if let drapesURL = profile.drapesGridImageURL,
                        let uiImage = UIImage(contentsOfFile: drapesURL.path) {
                         PackCard(
-                            title: "Drapes Grid",
-                            subtitle: "See yourself in your colors",
+                            title: "Color Draping",
+                            subtitle: "You, wearing your best colors",
                             image: uiImage,
                             icon: "square.grid.3x3.fill"
                         ) {
@@ -251,8 +251,8 @@ struct ProfileTab: View {
                        let textureURL = profile.texturePackImageURL,
                        let uiImage = UIImage(contentsOfFile: textureURL.path) {
                         PackCard(
-                            title: "Texture Pack",
-                            subtitle: "Perfect fabric patterns for you",
+                            title: "Fabric & Texture",
+                            subtitle: "Fabric patterns that enhance your look",
                             image: uiImage,
                             icon: "square.grid.3x3.fill"
                         ) {
@@ -265,8 +265,8 @@ struct ProfileTab: View {
                        let jewelryURL = profile.jewelryPackImageURL,
                        let uiImage = UIImage(contentsOfFile: jewelryURL.path) {
                         PackCard(
-                            title: "Jewelry Pack",
-                            subtitle: "Metals and gems that shine on you",
+                            title: "Jewelry & Metals",
+                            subtitle: "Metals and gems that illuminate your features",
                             image: uiImage,
                             icon: "sparkles"
                         ) {
@@ -279,8 +279,8 @@ struct ProfileTab: View {
                        let makeupURL = profile.makeupPackImageURL,
                        let uiImage = UIImage(contentsOfFile: makeupURL.path) {
                         PackCard(
-                            title: "Makeup Pack",
-                            subtitle: "Your ideal makeup shades",
+                            title: "Makeup Palette",
+                            subtitle: "Makeup shades that harmonize with you",
                             image: uiImage,
                             icon: "paintbrush.fill"
                         ) {
@@ -293,8 +293,8 @@ struct ProfileTab: View {
                        let hairURL = profile.hairColorPackImageURL,
                        let uiImage = UIImage(contentsOfFile: hairURL.path) {
                         PackCard(
-                            title: "Hair Color Pack",
-                            subtitle: "Hair colors for your season",
+                            title: "Hair Color Ideas",
+                            subtitle: "Hair colors that enhance your season",
                             image: uiImage,
                             icon: "person.crop.circle.fill"
                         ) {

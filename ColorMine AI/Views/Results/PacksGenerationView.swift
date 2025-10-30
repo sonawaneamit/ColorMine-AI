@@ -22,20 +22,20 @@ struct PacksGenerationView: View {
         var packSteps: [(String, String)] = []
 
         if profile.selectedPacks.contains("texture") {
-            packSteps.append(("Texture Pack", "square.grid.3x3.fill"))
+            packSteps.append(("Fabric & Texture", "square.grid.3x3.fill"))
         }
         if profile.selectedPacks.contains("jewelry") {
-            packSteps.append(("Jewelry Pack", "sparkles"))
+            packSteps.append(("Jewelry & Metals", "sparkles"))
         }
         if profile.selectedPacks.contains("makeup") {
-            packSteps.append(("Makeup Pack", "paintbrush.fill"))
+            packSteps.append(("Makeup Palette", "paintbrush.fill"))
         }
         if profile.selectedPacks.contains("hair") {
-            packSteps.append(("Hair Color Pack", "person.crop.circle.fill"))
+            packSteps.append(("Hair Color Ideas", "person.crop.circle.fill"))
         }
 
         // Always include style cards
-        packSteps.append(("Style Cards", "doc.text.fill"))
+        packSteps.append(("Style Essentials", "doc.text.fill"))
 
         return packSteps
     }

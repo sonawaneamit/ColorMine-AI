@@ -57,7 +57,7 @@ struct ScanView: View {
                         }
                     } else {
                         VStack(spacing: 16) {
-                            Button("Analyze Colors") {
+                            Button("Discover My Season") {
                                 analyzeImage()
                             }
                             .buttonStyle(PrimaryButtonStyle())

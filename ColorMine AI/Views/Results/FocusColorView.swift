@@ -88,47 +88,49 @@ struct FocusColorView: View {
 
                     // What's Next Section
                     VStack(spacing: 20) {
-                        Text("What's Next?")
+                        Text("Let's Create Your Style Guide")
                             .font(.title3)
                             .fontWeight(.semibold)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
 
-                        Text("Choose which personalized style guides you'd like to create")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
+                        if let focusColor = profile.focusColor {
+                            Text("We'll show you textures, jewelry, makeup, and hair colors that harmonize with \(focusColor.name)")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+                        }
 
                         // Feature cards
                         VStack(spacing: 16) {
                             PackFeatureCard(
                                 icon: "square.grid.3x3.fill",
-                                title: "Texture Pack",
+                                title: "Fabric & Texture",
                                 description: "See fabric patterns that enhance your look"
                             )
 
                             PackFeatureCard(
                                 icon: "sparkles",
-                                title: "Jewelry Pack",
+                                title: "Jewelry & Metals",
                                 description: "Discover metals and gemstones that shine on you"
                             )
 
                             PackFeatureCard(
                                 icon: "paintbrush.fill",
-                                title: "Makeup Pack",
+                                title: "Makeup Palette",
                                 description: "Find your perfect makeup shades"
                             )
 
                             PackFeatureCard(
                                 icon: "person.crop.circle.fill",
-                                title: "Hair Color Pack",
+                                title: "Hair Color Ideas",
                                 description: "Explore hair colors for your season"
                             )
 
                             PackFeatureCard(
                                 icon: "doc.text.fill",
-                                title: "Style Cards",
+                                title: "Style Essentials",
                                 description: "Get personalized contrast and neutral color guides"
                             )
                         }
@@ -147,7 +149,7 @@ struct FocusColorView: View {
                             } else {
                                 Image(systemName: "checkmark.circle.fill")
                                     .font(.title3)
-                                Text("Choose My Packs")
+                                Text("Create My Style Guide")
                                     .font(.headline)
                             }
                         }

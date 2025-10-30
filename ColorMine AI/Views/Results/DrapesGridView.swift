@@ -25,11 +25,11 @@ struct DrapesGridView: View {
                 VStack(spacing: 30) {
                     // Title
                     VStack(spacing: 8) {
-                        Text("Your Drapes")
+                        Text("See Yourself Clearly")
                             .font(.largeTitle)
                             .fontWeight(.bold)
 
-                        Text("See yourself in your perfect colors")
+                        Text("Here's you, wearing your season's colors")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
@@ -103,11 +103,11 @@ struct DrapesGridView: View {
 
                     // Instructions
                     VStack(spacing: 12) {
-                        Text("Choose Your Focus Color")
+                        Text("Choose One Color to Explore")
                             .font(.title3)
                             .fontWeight(.semibold)
 
-                        Text("Select one color for a deep dive into personalized styling")
+                        Text("Pick the shade that feels most like you — we'll build your complete style guide around it")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
@@ -118,7 +118,7 @@ struct DrapesGridView: View {
                             Image(systemName: "arrow.triangle.2.circlepath")
                                 .font(.caption)
                                 .foregroundColor(.purple.opacity(0.7))
-                            Text("Don't worry! You can change your focus color anytime later")
+                            Text("You can switch colors anytime")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -150,7 +150,7 @@ struct DrapesGridView: View {
                     }) {
                         HStack {
                             Image(systemName: "arrow.right.circle.fill")
-                            Text("Continue with \(selectedColor?.name ?? "Selected Color")")
+                            Text("Build My Guide with \(selectedColor?.name ?? "Selected Color")")
                         }
                         .font(.headline)
                         .foregroundColor(.white)

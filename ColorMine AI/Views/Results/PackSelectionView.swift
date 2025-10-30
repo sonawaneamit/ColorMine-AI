@@ -23,29 +23,29 @@ struct PackSelectionView: View {
     private let availablePacks = [
         PackOption(
             id: "texture",
-            title: "Texture Pack",
-            description: "Fabric patterns that enhance your natural coloring",
+            title: "Fabric & Texture",
+            description: "Fabric patterns that bring out your natural warmth",
             icon: "square.grid.3x3.fill",
             recommended: true
         ),
         PackOption(
             id: "jewelry",
-            title: "Jewelry Pack",
-            description: "Metals and gemstones that illuminate your features",
+            title: "Jewelry & Metals",
+            description: "Metals and gems that illuminate your features",
             icon: "sparkles",
             recommended: true
         ),
         PackOption(
             id: "makeup",
-            title: "Makeup Pack",
-            description: "Your ideal makeup palette based on your undertone",
+            title: "Makeup Palette",
+            description: "Makeup shades that harmonize with your undertone",
             icon: "paintbrush.fill",
             recommended: true
         ),
         PackOption(
             id: "hair",
-            title: "Hair Color Pack",
-            description: "Hair colors that complement your season and features",
+            title: "Hair Color Ideas",
+            description: "Hair colors that enhance your season and energy",
             icon: "person.crop.circle.fill",
             recommended: true
         )
@@ -70,11 +70,11 @@ struct PackSelectionView: View {
                                 )
                             )
 
-                        Text("Choose Your AI Packs")
+                        Text("Build Your Complete Style Guide")
                             .font(.largeTitle)
                             .fontWeight(.bold)
 
-                        Text("Select which personalized style guides you'd like to generate")
+                        Text("Select the style areas you'd like to explore")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
@@ -157,7 +157,7 @@ struct PackSelectionView: View {
                     }) {
                         HStack {
                             Image(systemName: selectedPacks.isEmpty ? "exclamationmark.triangle.fill" : "wand.and.stars")
-                            Text(selectedPacks.isEmpty ? "Select at least one pack" : "Generate \(selectedPacks.count) Pack\(selectedPacks.count == 1 ? "" : "s")")
+                            Text(selectedPacks.isEmpty ? "Select at least one area" : "Create My Guide")
                         }
                         .font(.headline)
                         .foregroundColor(.white)

@@ -164,11 +164,11 @@ struct PaletteSelectionView: View {
 
                     // Instructions
                     VStack(spacing: 8) {
-                        Text("Select Your Favorite Colors")
+                        Text("Choose Colors That Speak to You")
                             .font(.title3)
                             .fontWeight(.semibold)
 
-                        Text("Choose 3-12 colors that resonate with you")
+                        Text("Pick 3-12 colors from your season — we'll show you how they look on you")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
 
@@ -234,10 +234,10 @@ struct PaletteSelectionView: View {
                             if isGenerating {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                Text("Generating with AI...")
+                                Text("Creating your view...")
                             } else {
                                 Image(systemName: "sparkles")
-                                Text("Generate My Drapes")
+                                Text("See Myself in These Colors")
                             }
                         }
                         .font(.headline)
