@@ -125,8 +125,8 @@ struct TryOnProcessView: View {
         }
 
         // Check credits
-        guard profile.tryOnCredits >= 3 else {
-            errorMessage = "Not enough credits. You need 3 credits for a try-on."
+        guard profile.tryOnCredits >= 1 else {
+            errorMessage = "Not enough credits. You need 1 credit for a try-on."
             showError = true
             return
         }
@@ -178,11 +178,11 @@ struct TryOnProcessView: View {
                     garmentItem: garment,
                     resultImageURL: resultURL,
                     createdAt: Date(),
-                    creditsUsed: 3
+                    creditsUsed: 1  // 1 credit = 1 try-on
                 )
 
                 // Deduct credits and save
-                profile.tryOnCredits -= 3
+                profile.tryOnCredits -= 1  // 1 credit = 1 try-on
                 profile.tryOnHistory.append(result)
                 appState.saveProfile(profile)
 

@@ -107,7 +107,7 @@ struct CreditsPurchaseView: View {
                 .font(.title2)
                 .fontWeight(.bold)
 
-            Text("Each try-on uses 3 credits to generate photorealistic results")
+            Text("Each try-on uses 1 credit to generate photorealistic results")
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -171,7 +171,7 @@ struct CreditsPurchaseView: View {
                 )
                 HowItWorksRow(
                     icon: "wand.and.stars",
-                    text: "Use 3 credits per try-on"
+                    text: "Use 1 credit per try-on"
                 )
                 HowItWorksRow(
                     icon: "paintpalette.fill",
@@ -358,7 +358,7 @@ struct CreditPackCard: View {
     }
 
     private var tryOnCount: Int {
-        creditAmount / 3
+        creditAmount // 1 credit = 1 try-on
     }
 
     private var savingsPercentage: Int? {

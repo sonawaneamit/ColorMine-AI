@@ -678,7 +678,7 @@ struct TryOnTab: View {
                     .font(.title)
                     .fontWeight(.bold)
 
-                Text("3 credits per try-on")
+                Text("1 credit per try-on")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
