@@ -23,19 +23,24 @@ struct TryOnBrowserView: View {
     init(store: Store) {
         self.store = store
         self.customURL = nil
+        print("🌐 [TryOnBrowser] Initialized with store: \(store.name), URL: \(store.url)")
     }
 
     init(customURL: String) {
         self.store = nil
         self.customURL = customURL
+        print("🌐 [TryOnBrowser] Initialized with custom URL: \(customURL)")
     }
 
     private var initialURL: URL {
         if let store = store, let url = URL(string: store.url) {
+            print("🌐 [TryOnBrowser] Using store URL: \(url)")
             return url
         } else if let customURL = customURL, let url = URL(string: customURL) {
+            print("🌐 [TryOnBrowser] Using custom URL: \(url)")
             return url
         } else {
+            print("⚠️ [TryOnBrowser] No valid URL, falling back to Google")
             // Fallback to a default URL
             return URL(string: "https://www.google.com")!
         }
@@ -50,6 +55,8 @@ struct TryOnBrowserView: View {
     }
 
     var body: some View {
+        let _ = print("🌐 [TryOnBrowser] Body rendering with URL: \(initialURL)")
+
         NavigationStack {
             ZStack(alignment: .bottom) {
                 // Web View
@@ -210,22 +217,37 @@ struct WebView: UIViewRepresentable {
     }
 
     func makeUIView(context: Context) -> WKWebView {
+        print("🌐 [WebView] Creating WKWebView for URL: \(url)")
+
         let configuration = WKWebViewConfiguration()
         configuration.allowsInlineMediaPlayback = true
+
+        // Enable JavaScript (critical for most modern websites)
+        let preferences = WKWebpagePreferences()
+        preferences.allowsContentJavaScript = true
+        configuration.defaultWebpagePreferences = preferences
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.allowsBackForwardNavigationGestures = true
         webView.navigationDelegate = context.coordinator
 
+        // Make webview visible
+        webView.isOpaque = false
+        webView.backgroundColor = .white
+
+        print("🌐 [WebView] WKWebView created, loading URL...")
+
         // Store reference
         DispatchQueue.main.async {
             self.webView = webView
             self.currentURL = url
+            print("🌐 [WebView] WebView reference stored")
         }
 
         // Load URL
         let request = URLRequest(url: url)
         webView.load(request)
+        print("🌐 [WebView] Load request sent for: \(url)")
 
         return webView
     }
@@ -241,10 +263,40 @@ struct WebView: UIViewRepresentable {
             self.parent = parent
         }
 
+        // Called when navigation starts
+        func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+            print("🌐 [Navigation] Started loading: \(webView.url?.absoluteString ?? "unknown")")
+        }
+
+        // Called when navigation completes successfully
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            print("✅ [Navigation] Finished loading: \(webView.url?.absoluteString ?? "unknown")")
             DispatchQueue.main.async {
                 self.parent.currentURL = webView.url
             }
+        }
+
+        // Called when navigation fails
+        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+            print("❌ [Navigation] Failed: \(error.localizedDescription)")
+            print("❌ [Navigation] Error details: \(error)")
+        }
+
+        // Called when provisional navigation fails
+        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+            print("❌ [Navigation] Provisional navigation failed: \(error.localizedDescription)")
+            print("❌ [Navigation] Error details: \(error)")
+        }
+
+        // Called when web content process terminates
+        func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+            print("⚠️ [Navigation] Web content process terminated!")
+        }
+
+        // Called to decide whether to allow navigation
+        func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+            print("🌐 [Navigation] Deciding policy for: \(navigationAction.request.url?.absoluteString ?? "unknown")")
+            decisionHandler(.allow)
         }
     }
 }

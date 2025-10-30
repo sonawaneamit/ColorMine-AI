@@ -63,9 +63,11 @@ struct StoreGridView: View {
                 ], spacing: 16) {
                     ForEach(stores) { store in
                         StoreCard(store: store) {
+                            print("🛍️ [StoreGrid] Store tapped: \(store.name), URL: \(store.url)")
                             selectedStore = store
                             customURL = nil
                             showBrowser = true
+                            print("🛍️ [StoreGrid] showBrowser set to true, selectedStore: \(store.name)")
                         }
                     }
                 }
@@ -76,19 +78,28 @@ struct StoreGridView: View {
         }
         .background(Color(.systemGroupedBackground))
         .fullScreenCover(isPresented: $showBrowser) {
-            if let store = selectedStore {
-                TryOnBrowserView(store: store)
-                    .environmentObject(appState)
-            } else if let url = customURL {
-                TryOnBrowserView(customURL: url)
-                    .environmentObject(appState)
+            Group {
+                if let store = selectedStore {
+                    let _ = print("🎬 [StoreGrid] fullScreenCover presenting store: \(store.name)")
+                    TryOnBrowserView(store: store)
+                        .environmentObject(appState)
+                } else if let url = customURL {
+                    let _ = print("🎬 [StoreGrid] fullScreenCover presenting custom URL: \(url)")
+                    TryOnBrowserView(customURL: url)
+                        .environmentObject(appState)
+                } else {
+                    let _ = print("⚠️ [StoreGrid] fullScreenCover has no store or URL!")
+                    Text("No URL selected")
+                }
             }
         }
         .sheet(isPresented: $showURLInput) {
             URLInputSheet(urlText: $urlInputText) { url in
+                print("🌐 [StoreGrid] Custom URL submitted: \(url)")
                 customURL = url
                 selectedStore = nil
                 showBrowser = true
+                print("🌐 [StoreGrid] showBrowser set to true with custom URL")
             }
         }
     }
