@@ -325,6 +325,9 @@ struct PacksGenerationView: View {
 
             // Complete - send final notification and celebration haptic
             isGenerating = false
+
+            // Small delay before final celebration haptic to avoid overlap with last pack's haptic
+            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
             HapticManager.shared.allPacksCompleted()
             NotificationManager.shared.sendAllPacksCompleteNotification()
 
