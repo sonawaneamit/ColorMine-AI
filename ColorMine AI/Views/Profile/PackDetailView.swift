@@ -109,6 +109,9 @@ struct PackDetailView: View {
 
     private func shareImage(_ image: UIImage) {
         imageToShare = image
+
+        // Request review after user shares (they're happy with results!)
+        ReviewManager.shared.requestReviewAfterShare()
     }
 }
 

@@ -290,6 +290,9 @@ struct PacksGenerationView: View {
             appState.profileHistory.addProfile(updatedProfile)
             print("✅ Profile saved to history")
 
+            // Request review after packs complete (second wow moment!)
+            ReviewManager.shared.requestReviewAfterPacksComplete()
+
             // Navigate to dashboard
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 navigateToDashboard = true

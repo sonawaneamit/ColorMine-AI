@@ -28,6 +28,9 @@ class AppState: ObservableObject {
         // Load profile history
         profileHistory.loadFromStorage()
 
+        // Track app session for review prompts
+        ReviewManager.shared.incrementSessionCount()
+
         // Check if debug bypass was previously enabled
         #if DEBUG
         if UserDefaults.standard.bool(forKey: debugBypassKey) {

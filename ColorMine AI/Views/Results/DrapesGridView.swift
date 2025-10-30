@@ -49,6 +49,10 @@ struct DrapesGridView: View {
                                 .onTapGesture {
                                     showZoomView = true
                                 }
+                                .onAppear {
+                                    // Request review after drapes generation (first wow moment!)
+                                    ReviewManager.shared.requestReviewAfterDrapes()
+                                }
 
                             // Zoom hint
                             HStack(spacing: 6) {
@@ -62,6 +66,8 @@ struct DrapesGridView: View {
                             // Share Button
                             Button(action: {
                                 showShareSheet = true
+                                // Request review after sharing (they're happy with results!)
+                                ReviewManager.shared.requestReviewAfterShare()
                             }) {
                                 HStack {
                                     Image(systemName: "square.and.arrow.up")
