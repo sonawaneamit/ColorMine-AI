@@ -69,7 +69,9 @@ class PromptEngine {
         - The person's skin tone, complexion, and ethnicity MUST remain EXACTLY as shown in the reference photo
         - DO NOT alter, lighten, darken, or change the skin color in any way
         - Maintain the person's natural features, face shape, and appearance
-        - ONLY change the fabric texture - everything else stays identical
+        - The clothing color MUST stay EXACTLY \(color.name) (#\(color.hex)) - DO NOT change the color
+        - ONLY change the fabric TEXTURE (smooth, ribbed, fuzzy, shiny, matte, etc.) - NOT the color
+        - The color \(color.name) should look identical across all 6 tiles - only the texture should vary
 
         CRITICAL GRID FORMAT:
         - Create EXACTLY a 2×3 grid (2 columns, 3 rows = 6 total tiles)
@@ -90,9 +92,10 @@ class PromptEngine {
         - Each fabric should show distinct visual texture (matte vs. shiny, smooth vs. textured, etc.)
         - High resolution, professional quality
         - Labels clearly visible on each tile
-        - Color \(color.name) should appear consistent across all tiles
+        - The color \(color.name) (#\(color.hex)) MUST remain absolutely consistent across all tiles
+        - DO NOT vary the color shade, hue, saturation, or lightness - only the texture changes
 
-        Goal: Show how the same color transforms with different textures, helping visualize which fabric finishes work best for \(season.rawValue) season coloring.
+        Goal: Show how the SAME EXACT color \(color.name) appears in different fabric textures, helping visualize which texture finishes work best for \(season.rawValue) season coloring while keeping the color completely unchanged.
         """
     }
 
@@ -107,7 +110,8 @@ class PromptEngine {
         - The person's skin tone, complexion, and ethnicity MUST remain EXACTLY as shown in the reference photo
         - DO NOT alter, lighten, darken, or change the skin color in any way
         - Maintain the person's natural features, face shape, and appearance
-        - ONLY change the jewelry/metal - everything else stays identical
+        - The clothing color MUST stay EXACTLY \(color.name) (#\(color.hex)) - DO NOT change the clothing color
+        - ONLY change the jewelry metal/finish - the clothing color and skin tone stay completely identical
 
         CRITICAL GRID FORMAT:
         - Create EXACTLY a 2×3 grid (2 columns, 3 rows = 6 total tiles)
@@ -129,11 +133,13 @@ class PromptEngine {
         - High resolution, professional quality
         - Natural lighting that shows true metal tones
         - Each metal should be visually distinct
+        - The clothing color \(color.name) (#\(color.hex)) MUST remain exactly the same across all tiles
+        - DO NOT change the clothing color, shade, or appearance - only the jewelry metal changes
 
         UNDERTONE GUIDANCE:
-        The person has \(undertone.rawValue) undertones. Emphasize how each metal finish complements or contrasts with the undertone and \(color.name).
+        The person has \(undertone.rawValue) undertones. Emphasize how each metal finish complements or contrasts with the undertone.
 
-        Goal: Help visualize which jewelry metals create the most harmonious look for \(season.rawValue) coloring.
+        Goal: Help visualize which jewelry metals create the most harmonious look with the person's \(season.rawValue) coloring when wearing \(color.name), while keeping the clothing color completely unchanged.
         """
     }
 
@@ -223,7 +229,8 @@ class PromptEngine {
         - The person's skin tone, complexion, and ethnicity MUST remain EXACTLY as shown in the reference photo
         - DO NOT alter, lighten, darken, or change the skin color in any way
         - Maintain the person's natural facial features, face shape, and appearance
-        - ONLY change the hair color - the person's skin tone and features stay completely identical
+        - The clothing color MUST stay EXACTLY as shown in the reference photo - DO NOT change the clothing color
+        - ONLY change the hair color - the person's skin tone, clothing color, and features stay completely identical
         - This is essential for respectful, accurate representation
 
         CRITICAL GRID FORMAT:
@@ -250,8 +257,10 @@ class PromptEngine {
         - High resolution, professional quality
         - Each hair color should be visually distinct
         - Labels clearly visible on each tile
+        - The clothing color MUST remain exactly the same across all tiles
+        - DO NOT change the clothing color or skin tone - only the hair color changes
 
-        Goal: Help visualize which hair colors from the \(season.rawValue) palette will enhance natural coloring and create the most harmonious look.
+        Goal: Help visualize which hair colors from the \(season.rawValue) palette will enhance natural coloring and create the most harmonious look, while keeping the clothing color and skin tone completely unchanged.
         """
     }
 
