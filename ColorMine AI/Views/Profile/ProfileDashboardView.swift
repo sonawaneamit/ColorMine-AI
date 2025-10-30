@@ -41,17 +41,6 @@ struct ProfileDashboardView: View {
                         .foregroundColor(.purple)
                 }
             }
-
-            #if DEBUG
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button(action: {
-                    debugClearProfile()
-                }) {
-                    Image(systemName: "trash")
-                        .foregroundColor(.red)
-                }
-            }
-            #endif
         }
         .navigationDestination(item: $selectedPack) { packType in
             PackDetailView(profile: profile, packType: packType)
@@ -98,14 +87,6 @@ struct ProfileDashboardView: View {
     private func retakeSelfie() {
         appState.clearProfile()
     }
-
-    // MARK: - Debug Clear Profile
-    #if DEBUG
-    private func debugClearProfile() {
-        appState.clearProfile()
-        print("🐛 DEBUG: Profile cleared - restarting flow")
-    }
-    #endif
 }
 
 // MARK: - Profile Tab
