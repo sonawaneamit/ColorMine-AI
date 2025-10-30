@@ -236,17 +236,22 @@ struct PackSelectionCard: View {
                 // Content
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
-                        Text(pack.title)
-                            .font(.headline)
-                            .foregroundColor(.primary)
+                        HStack(spacing: 6) {
+                            Text(pack.title)
+                                .font(.headline)
+                                .foregroundColor(.primary)
 
-                        if pack.recommended {
-                            Text("RECOMMENDED")
+                            if pack.recommended {
+                                HStack(spacing: 3) {
+                                    Image(systemName: "star.fill")
+                                        .font(.system(size: 8))
+                                    Text("Top Pick")
+                                }
                                 .font(.caption2)
                                 .fontWeight(.bold)
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 8)
-                                .padding(.vertical, 2)
+                                .padding(.vertical, 3)
                                 .background(
                                     LinearGradient(
                                         colors: [.purple, .pink],
@@ -255,6 +260,7 @@ struct PackSelectionCard: View {
                                     )
                                 )
                                 .cornerRadius(8)
+                            }
                         }
                     }
 
