@@ -22,28 +22,25 @@ class ImageWatermarkUtility {
 
             // Configure watermark style
             let paragraphStyle = NSMutableParagraphStyle()
-            paragraphStyle.alignment = .right
+            paragraphStyle.alignment = .center
 
-            // Try to load app icon
-            let hasIcon = addAppIcon(context: context, imageSize: image.size)
-
-            // Add text watermark
+            // Add text watermark - just the URL
             let text = "ColorMineAI.com"
-            let fontSize: CGFloat = image.size.width > 1000 ? 28 : 20
-            let font = UIFont.systemFont(ofSize: fontSize, weight: .semibold)
+            let fontSize: CGFloat = image.size.width > 1000 ? 32 : 24
+            let font = UIFont.systemFont(ofSize: fontSize, weight: .bold)
 
             let attributes: [NSAttributedString.Key: Any] = [
                 .font: font,
                 .foregroundColor: UIColor.white,
                 .paragraphStyle: paragraphStyle,
-                .strokeColor: UIColor.black.withAlphaComponent(0.5),
-                .strokeWidth: -2.0
+                .strokeColor: UIColor.black.withAlphaComponent(0.7),
+                .strokeWidth: -3.0
             ]
 
             // Position watermark in bottom right corner
             let textSize = text.size(withAttributes: attributes)
             let padding: CGFloat = 20
-            let xPosition = hasIcon ? image.size.width - textSize.width - 80 - padding : image.size.width - textSize.width - padding
+            let xPosition = image.size.width - textSize.width - padding
             let yPosition = image.size.height - textSize.height - padding
 
             let textRect = CGRect(
@@ -54,9 +51,9 @@ class ImageWatermarkUtility {
             )
 
             // Add semi-transparent background for better readability
-            let backgroundRect = textRect.insetBy(dx: -10, dy: -5)
-            let backgroundPath = UIBezierPath(roundedRect: backgroundRect, cornerRadius: 8)
-            context.cgContext.setFillColor(UIColor.black.withAlphaComponent(0.4).cgColor)
+            let backgroundRect = textRect.insetBy(dx: -12, dy: -8)
+            let backgroundPath = UIBezierPath(roundedRect: backgroundRect, cornerRadius: 10)
+            context.cgContext.setFillColor(UIColor.black.withAlphaComponent(0.5).cgColor)
             backgroundPath.fill()
 
             // Draw text
@@ -64,48 +61,6 @@ class ImageWatermarkUtility {
         }
 
         return watermarkedImage
-    }
-
-    /// Attempts to add app icon to the watermark
-    private func addAppIcon(context: UIGraphicsImageRendererContext, imageSize: CGSize) -> Bool {
-        // Try to load app icon from asset catalog or bundle
-        if let appIcon = UIImage(named: "AppIcon") ?? getAppIcon() {
-            let iconSize: CGFloat = imageSize.width > 1000 ? 60 : 50
-            let padding: CGFloat = 20
-
-            let iconRect = CGRect(
-                x: imageSize.width - iconSize - padding,
-                y: imageSize.height - iconSize - padding,
-                width: iconSize,
-                height: iconSize
-            )
-
-            // Draw white background circle for icon
-            context.cgContext.setFillColor(UIColor.white.cgColor)
-            context.cgContext.fillEllipse(in: iconRect.insetBy(dx: -3, dy: -3))
-
-            // Draw icon with rounded corners
-            let clipPath = UIBezierPath(roundedRect: iconRect, cornerRadius: iconSize * 0.2)
-            clipPath.addClip()
-            appIcon.draw(in: iconRect)
-
-            return true
-        }
-
-        return false
-    }
-
-    /// Attempts to get app icon from bundle
-    private func getAppIcon() -> UIImage? {
-        // Try to get app icon from Info.plist
-        if let icons = Bundle.main.object(forInfoDictionaryKey: "CFBundleIcons") as? [String: Any],
-           let primaryIcon = icons["CFBundlePrimaryIcon"] as? [String: Any],
-           let iconFiles = primaryIcon["CFBundleIconFiles"] as? [String],
-           let lastIcon = iconFiles.last {
-            return UIImage(named: lastIcon)
-        }
-
-        return nil
     }
 
     /// Shares an image with watermark using UIActivityViewController

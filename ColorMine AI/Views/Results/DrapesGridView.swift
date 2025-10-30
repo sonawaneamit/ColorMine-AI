@@ -242,6 +242,7 @@ struct ZoomImageView: View {
     @State private var offset: CGSize = .zero
     @GestureState private var magnifyBy: CGFloat = 1.0
     @GestureState private var dragOffset: CGSize = .zero
+    @State private var showShareSheet = false
 
     var body: some View {
         NavigationStack {
@@ -276,12 +277,23 @@ struct ZoomImageView: View {
             .navigationTitle("Drapes Grid")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: {
+                        showShareSheet = true
+                    }) {
+                        Image(systemName: "square.and.arrow.up")
+                            .foregroundColor(.white)
+                    }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
                         dismiss()
                     }
                     .foregroundColor(.white)
                 }
+            }
+            .sheet(isPresented: $showShareSheet) {
+                ShareSheet(items: [ImageWatermarkUtility.shared.addWatermark(to: image)])
             }
         }
     }
