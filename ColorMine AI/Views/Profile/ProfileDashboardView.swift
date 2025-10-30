@@ -39,10 +39,10 @@ struct ProfileDashboardView: View {
                     }
             } else {
                 TabView(selection: $selectedTab) {
-                    // Profile Tab
+                    // Home Tab
                     ProfileTab(profile: profile, selectedPack: $selectedPack)
                         .tabItem {
-                            Label("Profile", systemImage: "person.circle.fill")
+                            Label("Home", systemImage: "house.fill")
                         }
                         .tag(0)
                         .toolbar {
