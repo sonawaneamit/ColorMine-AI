@@ -240,7 +240,8 @@ struct ProfileTab: View {
                             title: "Color Draping",
                             subtitle: "You, wearing your best colors",
                             image: uiImage,
-                            icon: "square.grid.3x3.fill"
+                            icon: "square.grid.3x3.fill",
+                            packID: "drapes_pack"
                         ) {
                             selectedPack = .drapesGrid
                         }
@@ -255,7 +256,8 @@ struct ProfileTab: View {
                             title: "Fabric & Texture",
                             subtitle: "Fabric patterns that enhance your look",
                             image: uiImage,
-                            icon: "square.grid.3x3.fill"
+                            icon: "square.grid.3x3.fill",
+                            packID: "texture_pack"
                         ) {
                             selectedPack = .texturePack
                         }
@@ -270,7 +272,8 @@ struct ProfileTab: View {
                             title: "Jewelry & Metals",
                             subtitle: "Metals and gems that illuminate your features",
                             image: uiImage,
-                            icon: "sparkles"
+                            icon: "sparkles",
+                            packID: "jewelry_pack"
                         ) {
                             selectedPack = .jewelryPack
                         }
@@ -285,7 +288,8 @@ struct ProfileTab: View {
                             title: "Makeup Palette",
                             subtitle: "Makeup shades that harmonize with you",
                             image: uiImage,
-                            icon: "paintbrush.fill"
+                            icon: "paintbrush.fill",
+                            packID: "makeup_pack"
                         ) {
                             selectedPack = .makeupPack
                         }
@@ -300,7 +304,8 @@ struct ProfileTab: View {
                             title: "Hair Color Ideas",
                             subtitle: "Hair colors that enhance your season",
                             image: uiImage,
-                            icon: "person.crop.circle.fill"
+                            icon: "person.crop.circle.fill",
+                            packID: "hair_pack"
                         ) {
                             selectedPack = .hairColorPack
                         }
@@ -382,42 +387,44 @@ struct PackCard: View {
     let subtitle: String
     let image: UIImage
     let icon: String
+    let packID: String  // Add unique identifier
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            VStack(alignment: .leading, spacing: 12) {
-                // Image
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(height: 200)
-                    .clipped()
-                    .cornerRadius(12)
+        VStack(alignment: .leading, spacing: 12) {
+            // Image
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
+                .frame(height: 200)
+                .clipped()
+                .cornerRadius(12)
 
-                // Title and subtitle
-                HStack {
-                    Image(systemName: icon)
-                        .foregroundColor(.purple)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(title)
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                        Text(subtitle)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    Spacer()
-                    Image(systemName: "chevron.right")
+            // Title and subtitle
+            HStack {
+                Image(systemName: icon)
+                    .foregroundColor(.purple)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    Text(subtitle)
+                        .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .foregroundColor(.secondary)
             }
-            .padding()
-            .background(Color(.systemBackground))
-            .cornerRadius(16)
-            .shadow(color: .black.opacity(0.05), radius: 5, y: 2)
         }
-        .buttonStyle(.plain)
+        .padding()
+        .background(Color(.systemBackground))
+        .cornerRadius(16)
+        .shadow(color: .black.opacity(0.05), radius: 5, y: 2)
+        .contentShape(Rectangle())  // Make entire card tappable
+        .onTapGesture {
+            action()
+        }
         .padding(.horizontal)
     }
 }

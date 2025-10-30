@@ -120,7 +120,8 @@ struct HistoricalProfileDetailView: View {
                                 title: "Drapes Grid",
                                 subtitle: "Your perfect colors",
                                 image: uiImage,
-                                icon: "square.grid.3x3.fill"
+                                icon: "square.grid.3x3.fill",
+                                packID: "hist_drapes_pack"
                             ) {
                                 selectedPack = .drapesGrid
                             }
@@ -134,7 +135,8 @@ struct HistoricalProfileDetailView: View {
                                 title: "Texture Pack",
                                 subtitle: "Perfect fabric patterns",
                                 image: uiImage,
-                                icon: "square.grid.3x3.fill"
+                                icon: "square.grid.3x3.fill",
+                                packID: "hist_texture_pack"
                             ) {
                                 selectedPack = .texturePack
                             }
@@ -148,7 +150,8 @@ struct HistoricalProfileDetailView: View {
                                 title: "Jewelry Pack",
                                 subtitle: "Metals and gemstones",
                                 image: uiImage,
-                                icon: "sparkles"
+                                icon: "sparkles",
+                                packID: "hist_jewelry_pack"
                             ) {
                                 selectedPack = .jewelryPack
                             }
@@ -162,7 +165,8 @@ struct HistoricalProfileDetailView: View {
                                 title: "Makeup Pack",
                                 subtitle: "Your ideal makeup shades",
                                 image: uiImage,
-                                icon: "paintbrush.fill"
+                                icon: "paintbrush.fill",
+                                packID: "hist_makeup_pack"
                             ) {
                                 selectedPack = .makeupPack
                             }
@@ -176,7 +180,8 @@ struct HistoricalProfileDetailView: View {
                                 title: "Hair Color Pack",
                                 subtitle: "Hair colors for your season",
                                 image: uiImage,
-                                icon: "person.crop.circle.fill"
+                                icon: "person.crop.circle.fill",
+                                packID: "hist_hair_pack"
                             ) {
                                 selectedPack = .hairColorPack
                             }
