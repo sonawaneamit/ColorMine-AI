@@ -179,7 +179,7 @@ struct DrapesGridView: View {
         }
         .navigationTitle("Drapes Grid")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $showZoomView) {
+        .fullScreenCover(isPresented: $showZoomView) {
             if let imageURL = profile.drapesGridImageURL,
                let uiImage = UIImage(contentsOfFile: imageURL.path) {
                 ZoomImageView(image: uiImage)
@@ -297,6 +297,7 @@ struct ZoomImageView: View {
             .ignoresSafeArea()
             .navigationTitle("Drapes Grid")
             .navigationBarTitleDisplayMode(.inline)
+            .interactiveDismissDisabled(true)  // Prevent swipe-to-dismiss, only "Done" button works
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(action: {

@@ -178,7 +178,7 @@ struct ImagePackDetail: View {
             }
             .padding(.horizontal)
         }
-        .sheet(isPresented: $showZoomView) {
+        .fullScreenCover(isPresented: $showZoomView) {
             PackZoomImageView(image: image, title: title)
         }
     }
@@ -225,6 +225,7 @@ struct PackZoomImageView: View {
             .ignoresSafeArea()
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
+            .interactiveDismissDisabled(true)  // Prevent swipe-to-dismiss, only "Done" button works
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(action: {
