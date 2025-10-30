@@ -104,7 +104,7 @@ struct FullBodyPhotoSetupView: View {
         .navigationTitle("Try-On Setup")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showImagePicker) {
-            ImagePicker(image: $selectedImage, sourceType: photoSource)
+            FullBodyImagePicker(image: $selectedImage, sourceType: photoSource)
         }
         .onChange(of: selectedImage) { oldValue, newValue in
             if let image = newValue {

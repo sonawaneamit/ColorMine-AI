@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct StoreGridView: View {
+    @EnvironmentObject var appState: AppState
     @State private var selectedStore: Store?
     @State private var customURL: String?
     @State private var showBrowser = false
@@ -77,8 +78,10 @@ struct StoreGridView: View {
         .fullScreenCover(isPresented: $showBrowser) {
             if let store = selectedStore {
                 TryOnBrowserView(store: store)
+                    .environmentObject(appState)
             } else if let url = customURL {
                 TryOnBrowserView(customURL: url)
+                    .environmentObject(appState)
             }
         }
         .sheet(isPresented: $showURLInput) {
