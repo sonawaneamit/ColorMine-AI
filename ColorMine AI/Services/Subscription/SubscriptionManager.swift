@@ -17,8 +17,8 @@ class SubscriptionManager: ObservableObject {
     @Published var products: [Product] = []
 
     // Product IDs - MUST match App Store Connect
-    private let weeklyProductID = "com.colormine.weekly"
-    private let monthlyProductID = "com.colormine.monthly"
+    private let weeklyProductID = "com.colormineai.weekly"
+    private let monthlyProductID = "com.colormineai.monthly"
 
     private var updateListenerTask: Task<Void, Error>?
 
