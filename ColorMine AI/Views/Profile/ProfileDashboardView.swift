@@ -244,6 +244,7 @@ struct ProfileTab: View {
                         ) {
                             selectedPack = .drapesGrid
                         }
+                        .id("drapes_pack")
                     }
 
                     // Texture Pack (only if selected)
@@ -258,6 +259,7 @@ struct ProfileTab: View {
                         ) {
                             selectedPack = .texturePack
                         }
+                        .id("texture_pack")
                     }
 
                     // Jewelry Pack (only if selected)
@@ -272,6 +274,7 @@ struct ProfileTab: View {
                         ) {
                             selectedPack = .jewelryPack
                         }
+                        .id("jewelry_pack")
                     }
 
                     // Makeup Pack (only if selected)
@@ -286,6 +289,7 @@ struct ProfileTab: View {
                         ) {
                             selectedPack = .makeupPack
                         }
+                        .id("makeup_pack")
                     }
 
                     // Hair Color Pack (only if selected)
@@ -300,6 +304,7 @@ struct ProfileTab: View {
                         ) {
                             selectedPack = .hairColorPack
                         }
+                        .id("hair_pack")
                     }
                 }
 
@@ -323,6 +328,7 @@ struct ProfileTab: View {
                         ) {
                             selectedPack = .contrastCard
                         }
+                        .id("contrast_card")
                     }
 
                     // Neutrals & Metals Card
@@ -335,6 +341,7 @@ struct ProfileTab: View {
                         ) {
                             selectedPack = .neutralsMetalsCard
                         }
+                        .id("neutrals_card")
                     }
                 }
 
