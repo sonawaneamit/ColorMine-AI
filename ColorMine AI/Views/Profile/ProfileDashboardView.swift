@@ -9,58 +9,81 @@ import SwiftUI
 
 struct ProfileDashboardView: View {
     @EnvironmentObject var appState: AppState
-    let profile: UserProfile
 
     @State private var selectedTab = 0
     @State private var selectedPack: PackDetailType?
     @State private var showRegenerateOptions = false
 
-    var body: some View {
-        TabView(selection: $selectedTab) {
-            // Profile Tab
-            ProfileTab(profile: profile, selectedPack: $selectedPack)
-                .tabItem {
-                    Label("Profile", systemImage: "person.circle.fill")
-                }
-                .tag(0)
+    // Use computed property to always get current profile from appState
+    private var profile: UserProfile {
+        appState.currentProfile ?? UserProfile(
+            selfieImageData: nil,
+            season: .clearSpring,
+            undertone: .warm,
+            contrast: .high,
+            confidence: 0.89
+        )
+    }
 
-            // Wardrobe Tab
-            WardrobeTab()
-                .tabItem {
-                    Label("Wardrobe", systemImage: "tshirt.fill")
+    var body: some View {
+        Group {
+            // If focus color is nil, user should be back at drapes selection
+            // This handles the case when regenerateFromFocusColor() is called
+            if profile.focusColor == nil || !profile.packsGenerated.allGenerated(selectedPacks: profile.selectedPacks) {
+                // Don't show dashboard - let RootView handle routing
+                Color.clear
+                    .onAppear {
+                        // Force RootView to re-evaluate by setting a temporary state
+                        // The RootView will show the correct view based on profile state
+                    }
+            } else {
+                TabView(selection: $selectedTab) {
+                    // Profile Tab
+                    ProfileTab(profile: profile, selectedPack: $selectedPack)
+                        .tabItem {
+                            Label("Profile", systemImage: "person.circle.fill")
+                        }
+                        .tag(0)
+
+                    // Wardrobe Tab
+                    WardrobeTab()
+                        .tabItem {
+                            Label("Wardrobe", systemImage: "tshirt.fill")
+                        }
+                        .tag(1)
                 }
-                .tag(1)
-        }
-        .navigationBarBackButtonHidden(true)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: {
-                    showRegenerateOptions = true
-                }) {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                        .foregroundColor(.purple)
+                .navigationBarBackButtonHidden(true)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button(action: {
+                            showRegenerateOptions = true
+                        }) {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .foregroundColor(.purple)
+                        }
+                    }
+                }
+                .navigationDestination(item: $selectedPack) { packType in
+                    PackDetailView(profile: profile, packType: packType)
+                        .environmentObject(appState)
+                        .navigationBarBackButtonHidden(false)
+                }
+                .confirmationDialog("Regenerate Content", isPresented: $showRegenerateOptions) {
+                    Button("Change Focus Color & Regenerate Packs") {
+                        regenerateFromFocusColor()
+                    }
+                    Button("Retake Selfie & Start Over") {
+                        retakeSelfie()
+                    }
+                    Button("Cancel", role: .cancel) {}
+                } message: {
+                    Text("Choose what you'd like to regenerate")
+                }
+                .onAppear {
+                    // Clear notification badge when viewing dashboard
+                    NotificationManager.shared.clearBadge()
                 }
             }
-        }
-        .navigationDestination(item: $selectedPack) { packType in
-            PackDetailView(profile: profile, packType: packType)
-                .environmentObject(appState)
-                .navigationBarBackButtonHidden(false)
-        }
-        .confirmationDialog("Regenerate Content", isPresented: $showRegenerateOptions) {
-            Button("Change Focus Color & Regenerate Packs") {
-                regenerateFromFocusColor()
-            }
-            Button("Retake Selfie & Start Over") {
-                retakeSelfie()
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Choose what you'd like to regenerate")
-        }
-        .onAppear {
-            // Clear notification badge when viewing dashboard
-            NotificationManager.shared.clearBadge()
         }
     }
 
@@ -479,14 +502,6 @@ enum PackDetailType: Identifiable {
 }
 
 #Preview {
-    ProfileDashboardView(
-        profile: UserProfile(
-            selfieImageData: nil,
-            season: .clearSpring,
-            undertone: .warm,
-            contrast: .high,
-            confidence: 0.89
-        )
-    )
-    .environmentObject(AppState())
+    ProfileDashboardView()
+        .environmentObject(AppState())
 }

@@ -103,10 +103,8 @@ struct PacksGenerationView: View {
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(isGenerating)
         .navigationDestination(isPresented: $navigateToDashboard) {
-            if let updatedProfile = appState.currentProfile {
-                ProfileDashboardView(profile: updatedProfile)
-                    .environmentObject(appState)
-            }
+            ProfileDashboardView()
+                .environmentObject(appState)
         }
         .onAppear {
             requestNotificationPermissions()

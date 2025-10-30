@@ -55,7 +55,7 @@ struct RootView: View {
                     PacksGenerationView(profile: profile)
                 } else {
                     // Step 6: Profile complete - show dashboard
-                    ProfileDashboardView(profile: profile)
+                    ProfileDashboardView()
                 }
             } else {
                 // Show scan view if subscribed but no profile
