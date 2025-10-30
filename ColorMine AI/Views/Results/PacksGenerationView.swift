@@ -16,6 +16,7 @@ struct PacksGenerationView: View {
     @State private var isGenerating = true
     @State private var errorMessage: String?
     @State private var navigateToDashboard = false
+    @State private var hasStartedGeneration = false  // Prevent duplicate runs
 
     private var steps: [(String, String)] {
         var packSteps: [(String, String)] = []
@@ -107,6 +108,13 @@ struct PacksGenerationView: View {
                 .environmentObject(appState)
         }
         .onAppear {
+            // Prevent duplicate execution if onAppear is called multiple times
+            guard !hasStartedGeneration else {
+                print("⚠️ Generation already started, skipping duplicate onAppear")
+                return
+            }
+            hasStartedGeneration = true
+
             requestNotificationPermissions()
             startGeneration()
         }
