@@ -9,7 +9,10 @@ import SwiftUI
 
 struct StoreGridView: View {
     @State private var selectedStore: Store?
+    @State private var customURL: String?
     @State private var showBrowser = false
+    @State private var showURLInput = false
+    @State private var urlInputText = ""
 
     private let stores = Store.predefinedStores
 
@@ -29,6 +32,29 @@ struct StoreGridView: View {
                 .padding(.horizontal)
                 .padding(.top, 20)
 
+                // Enter Custom URL Card
+                CustomURLCard {
+                    showURLInput = true
+                }
+                .padding(.horizontal)
+
+                // Divider
+                VStack(spacing: 8) {
+                    HStack {
+                        VStack {
+                            Divider()
+                        }
+                        Text("or browse our partners")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, 8)
+                        VStack {
+                            Divider()
+                        }
+                    }
+                }
+                .padding(.horizontal)
+
                 // Store Grid
                 LazyVGrid(columns: [
                     GridItem(.flexible(), spacing: 16),
@@ -37,6 +63,7 @@ struct StoreGridView: View {
                     ForEach(stores) { store in
                         StoreCard(store: store) {
                             selectedStore = store
+                            customURL = nil
                             showBrowser = true
                         }
                     }
@@ -50,6 +77,15 @@ struct StoreGridView: View {
         .fullScreenCover(isPresented: $showBrowser) {
             if let store = selectedStore {
                 TryOnBrowserView(store: store)
+            } else if let url = customURL {
+                TryOnBrowserView(customURL: url)
+            }
+        }
+        .sheet(isPresented: $showURLInput) {
+            URLInputSheet(urlText: $urlInputText) { url in
+                customURL = url
+                selectedStore = nil
+                showBrowser = true
             }
         }
     }
@@ -111,6 +147,115 @@ struct StoreCard: View {
         case .sustainable:
             return [.teal, .green]
         }
+    }
+}
+
+// MARK: - Custom URL Card
+struct CustomURLCard: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 16) {
+                Image(systemName: "globe")
+                    .font(.system(size: 30))
+                    .foregroundColor(.white)
+                    .frame(width: 60, height: 60)
+                    .background(
+                        LinearGradient(
+                            colors: [.indigo, .purple],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .cornerRadius(12)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Browse Any Website")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+
+                    Text("Enter a URL to shop anywhere")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .foregroundColor(.secondary)
+            }
+            .padding()
+            .background(Color(.systemBackground))
+            .cornerRadius(16)
+            .shadow(color: .black.opacity(0.05), radius: 5, y: 2)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - URL Input Sheet
+struct URLInputSheet: View {
+    @Binding var urlText: String
+    let onSubmit: (String) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 24) {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Enter Website URL")
+                        .font(.headline)
+
+                    TextField("https://www.example.com", text: $urlText)
+                        .textFieldStyle(.roundedBorder)
+                        .keyboardType(.URL)
+                        .autocapitalization(.none)
+                        .autocorrectionDisabled()
+                        .focused($isFocused)
+                }
+                .padding()
+
+                Button(action: submitURL) {
+                    HStack {
+                        Image(systemName: "arrow.right.circle.fill")
+                        Text("Open Website")
+                    }
+                }
+                .buttonStyle(PrimaryButtonStyle())
+                .disabled(urlText.isEmpty)
+                .padding(.horizontal)
+
+                Spacer()
+            }
+            .padding(.top, 20)
+            .navigationTitle("Browse Any Site")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
+            .onAppear {
+                isFocused = true
+            }
+        }
+    }
+
+    private func submitURL() {
+        var finalURL = urlText.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Add https:// if no scheme provided
+        if !finalURL.hasPrefix("http://") && !finalURL.hasPrefix("https://") {
+            finalURL = "https://\(finalURL)"
+        }
+
+        onSubmit(finalURL)
+        dismiss()
     }
 }
 

@@ -12,19 +12,51 @@ struct TryOnBrowserView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) private var dismiss
 
-    let store: Store
+    let store: Store?
+    let customURL: String?
 
     @State private var webView: WKWebView?
     @State private var showSaveConfirmation = false
     @State private var isCapturing = false
+    @State private var currentURL: URL?
+
+    init(store: Store) {
+        self.store = store
+        self.customURL = nil
+    }
+
+    init(customURL: String) {
+        self.store = nil
+        self.customURL = customURL
+    }
+
+    private var initialURL: URL {
+        if let store = store, let url = URL(string: store.url) {
+            return url
+        } else if let customURL = customURL, let url = URL(string: customURL) {
+            return url
+        } else {
+            // Fallback to a default URL
+            return URL(string: "https://www.google.com")!
+        }
+    }
+
+    private var displayName: String {
+        store?.name ?? "Browser"
+    }
+
+    private var storeName: String? {
+        store?.name
+    }
 
     var body: some View {
         NavigationStack {
             ZStack(alignment: .bottom) {
                 // Web View
                 WebView(
-                    url: URL(string: store.url)!,
-                    webView: $webView
+                    url: initialURL,
+                    webView: $webView,
+                    currentURL: $currentURL
                 )
                 .ignoresSafeArea()
 
@@ -61,12 +93,33 @@ struct TryOnBrowserView: View {
                     .padding(.bottom, 30)
                 }
             }
-            .navigationTitle(store.name)
+            .navigationTitle(displayName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Done") {
                         dismiss()
+                    }
+                }
+
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    HStack(spacing: 8) {
+                        // Back button
+                        Button(action: { webView?.goBack() }) {
+                            Image(systemName: "chevron.left")
+                        }
+                        .disabled(webView?.canGoBack == false)
+
+                        // Forward button
+                        Button(action: { webView?.goForward() }) {
+                            Image(systemName: "chevron.right")
+                        }
+                        .disabled(webView?.canGoForward == false)
+
+                        // Reload button
+                        Button(action: { webView?.reload() }) {
+                            Image(systemName: "arrow.clockwise")
+                        }
                     }
                 }
             }
@@ -120,9 +173,12 @@ struct TryOnBrowserView: View {
             )
 
             // Create garment item with color analysis
+            // If no store, try to extract domain from current URL
+            let source = storeName ?? currentURL?.host ?? "Web"
+
             let garment = GarmentItem(
                 imageURL: garmentURL,
-                sourceStore: store.name,
+                sourceStore: source,
                 dominantColorHex: analysis.dominantColorHex,
                 matchesUserSeason: analysis.matchesSeason,
                 colorMatchScore: analysis.matchScore
@@ -147,6 +203,11 @@ struct TryOnBrowserView: View {
 struct WebView: UIViewRepresentable {
     let url: URL
     @Binding var webView: WKWebView?
+    @Binding var currentURL: URL?
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
 
     func makeUIView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
@@ -154,10 +215,12 @@ struct WebView: UIViewRepresentable {
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.allowsBackForwardNavigationGestures = true
+        webView.navigationDelegate = context.coordinator
 
         // Store reference
         DispatchQueue.main.async {
             self.webView = webView
+            self.currentURL = url
         }
 
         // Load URL
@@ -169,6 +232,20 @@ struct WebView: UIViewRepresentable {
 
     func updateUIView(_ uiView: WKWebView, context: Context) {
         // No updates needed
+    }
+
+    class Coordinator: NSObject, WKNavigationDelegate {
+        var parent: WebView
+
+        init(_ parent: WebView) {
+            self.parent = parent
+        }
+
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            DispatchQueue.main.async {
+                self.parent.currentURL = webView.url
+            }
+        }
     }
 }
 

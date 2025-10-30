@@ -49,6 +49,11 @@ struct CreditsPurchaseView: View {
                         // How it works
                         howItWorksSection
 
+                        #if DEBUG
+                        // Debug section
+                        debugSection
+                        #endif
+
                         Spacer().frame(height: 40)
                     }
                     .padding()
@@ -182,6 +187,83 @@ struct CreditsPurchaseView: View {
         .background(Color(.systemBackground))
         .cornerRadius(16)
     }
+
+    // MARK: - Debug Section
+    #if DEBUG
+    private var debugSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "hammer.fill")
+                    .foregroundColor(.orange)
+                Text("Debug Mode")
+                    .font(.headline)
+                    .foregroundColor(.orange)
+            }
+
+            Text("Testing tools (only visible in debug builds)")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            HStack(spacing: 12) {
+                Button(action: { addDebugCredits(10) }) {
+                    VStack(spacing: 4) {
+                        Text("+10")
+                            .font(.headline)
+                        Text("credits")
+                            .font(.caption2)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color.orange.opacity(0.2))
+                    .cornerRadius(8)
+                }
+                .buttonStyle(.plain)
+
+                Button(action: { addDebugCredits(50) }) {
+                    VStack(spacing: 4) {
+                        Text("+50")
+                            .font(.headline)
+                        Text("credits")
+                            .font(.caption2)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color.orange.opacity(0.2))
+                    .cornerRadius(8)
+                }
+                .buttonStyle(.plain)
+
+                Button(action: { addDebugCredits(100) }) {
+                    VStack(spacing: 4) {
+                        Text("+100")
+                            .font(.headline)
+                        Text("credits")
+                            .font(.caption2)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color.orange.opacity(0.2))
+                    .cornerRadius(8)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding()
+        .background(Color.orange.opacity(0.1))
+        .cornerRadius(16)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.orange.opacity(0.3), lineWidth: 2)
+        )
+    }
+
+    private func addDebugCredits(_ amount: Int) {
+        guard var profile = appState.currentProfile else { return }
+        profile.tryOnCredits += amount
+        appState.saveProfile(profile)
+        print("🐛 DEBUG: Added \(amount) credits (Total: \(profile.tryOnCredits))")
+    }
+    #endif
 
     // MARK: - No Products
     private var noProductsView: some View {
