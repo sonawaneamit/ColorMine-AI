@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct FocusColorView: View {
+    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var appState: AppState
     let profile: UserProfile
 
@@ -64,6 +65,24 @@ struct FocusColorView: View {
                                 .padding(.vertical, 8)
                                 .background(Color(.systemBackground).opacity(0.8))
                                 .cornerRadius(8)
+
+                            // Change Color Button
+                            Button(action: {
+                                goBackToChangeColor()
+                            }) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "arrow.triangle.2.circlepath")
+                                        .font(.subheadline)
+                                    Text("Change Focus Color")
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                }
+                                .foregroundColor(.purple)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 10)
+                                .background(Color(.systemBackground).opacity(0.9))
+                                .cornerRadius(20)
+                            }
                         }
                     }
 
@@ -171,6 +190,15 @@ struct FocusColorView: View {
             navigateToPacks = true
             isGenerating = false
         }
+    }
+
+    // MARK: - Go Back to Change Color
+    private func goBackToChangeColor() {
+        // Clear the focus color and navigate back to drapes grid
+        var updatedProfile = profile
+        updatedProfile.focusColor = nil
+        appState.saveProfile(updatedProfile)
+        dismiss()
     }
 }
 
