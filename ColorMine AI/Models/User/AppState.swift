@@ -14,6 +14,7 @@ class AppState: ObservableObject {
     @Published var isSubscribed: Bool = false
     @Published var isLoading: Bool = false
     @Published var profileHistory = ProfileHistory()
+    @Published var navigationResetID: UUID = UUID()  // Forces navigation stack to reset
 
     let subscriptionManager = SubscriptionManager.shared
     let persistenceManager = PersistenceManager.shared
@@ -80,6 +81,9 @@ class AppState: ObservableObject {
     func clearProfile() {
         currentProfile = nil
         persistenceManager.deleteProfile()
+        // Force navigation stack to reset by changing the ID
+        navigationResetID = UUID()
+        print("🔄 Navigation reset - returning to scan view")
     }
 
     // MARK: - Update Subscription Status

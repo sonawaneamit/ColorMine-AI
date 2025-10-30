@@ -20,6 +20,7 @@ struct ColorMine_AIApp: App {
                         await appState.initialize()
                     }
             }
+            .id(appState.navigationResetID)  // Reset navigation when retaking selfie
         }
     }
 }
