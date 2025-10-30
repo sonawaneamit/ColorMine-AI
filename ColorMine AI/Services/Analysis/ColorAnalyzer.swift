@@ -13,28 +13,28 @@ class ColorAnalyzer {
     static let shared = ColorAnalyzer()
 
     // MARK: - Analysis Method Toggle
-    /// Set to true to use Gemini AI for season analysis (uses API credits)
+    /// Set to true to use OpenAI GPT-4 Vision for season analysis (uses API credits, best accuracy)
     /// Set to false to use on-device ML analysis (free, works offline)
-    public var useGeminiAI = true  // ✅ Try Gemini first!
+    public var useAI = true  // ✅ Using OpenAI GPT-4 Vision for better results!
 
     private init() {}
 
     // MARK: - Main Analysis (Async Wrapper)
-    /// Analyzes skin tone using either Gemini AI or on-device ML based on useGeminiAI flag
+    /// Analyzes skin tone using either OpenAI GPT-4 Vision or on-device ML based on useAI flag
     func analyzeSkinTone(from image: UIImage, faceObservation: VNFaceObservation) async throws -> (
         season: ColorSeason,
         undertone: Undertone,
         contrast: Contrast,
         confidence: Double
     ) {
-        if useGeminiAI {
-            print("🤖 Using Gemini AI for season analysis")
+        if useAI {
+            print("🤖 Using OpenAI GPT-4 Vision for season analysis")
             do {
-                let result = try await GeminiService.shared.analyzeSeasonWithAI(selfieImage: image)
+                let result = try await OpenAIService.shared.analyzeSeasonWithAI(selfieImage: image)
                 return result
             } catch {
-                print("⚠️ Gemini AI failed, falling back to on-device ML: \(error.localizedDescription)")
-                // Fallback to on-device analysis if Gemini fails
+                print("⚠️ OpenAI failed, falling back to on-device ML: \(error.localizedDescription)")
+                // Fallback to on-device analysis if OpenAI fails
                 return analyzeSkinToneOnDevice(from: image, faceObservation: faceObservation)
             }
         } else {
