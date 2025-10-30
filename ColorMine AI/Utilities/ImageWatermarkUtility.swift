@@ -14,9 +14,25 @@ class ImageWatermarkUtility {
 
     /// Adds a watermark to an image with ColorMineAI.com branding
     func addWatermark(to image: UIImage) -> UIImage {
-        let renderer = UIGraphicsImageRenderer(size: image.size)
+        // Use higher scale for better quality rendering
+        let scale = max(image.scale, UIScreen.main.scale)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = scale
+        format.opaque = false
+        format.preferredRange = .standard
+
+        let renderer = UIGraphicsImageRenderer(size: image.size, format: format)
 
         let watermarkedImage = renderer.image { context in
+            let cgContext = context.cgContext
+
+            // Enable high-quality rendering
+            cgContext.setAllowsAntialiasing(true)
+            cgContext.setShouldAntialias(true)
+            cgContext.interpolationQuality = .high
+            cgContext.setAllowsFontSmoothing(true)
+            cgContext.setShouldSmoothFonts(true)
+
             // Draw original image
             image.draw(at: .zero)
 
@@ -26,21 +42,28 @@ class ImageWatermarkUtility {
 
             // Add text watermark - just the URL
             let text = "ColorMineAI.com"
-            let fontSize: CGFloat = image.size.width > 1000 ? 32 : 24
-            let font = UIFont.systemFont(ofSize: fontSize, weight: .bold)
+            // Scale font size based on image dimensions for better proportions
+            let fontSize: CGFloat = min(image.size.width, image.size.height) * 0.03
+            let font = UIFont.systemFont(ofSize: fontSize, weight: .semibold)
 
-            let attributes: [NSAttributedString.Key: Any] = [
+            // First pass: draw shadow for depth (no stroke)
+            let shadowAttributes: [NSAttributedString.Key: Any] = [
                 .font: font,
-                .foregroundColor: UIColor.white,
-                .paragraphStyle: paragraphStyle,
-                .strokeColor: UIColor.black.withAlphaComponent(0.7),
-                .strokeWidth: -3.0
+                .foregroundColor: UIColor.black.withAlphaComponent(0.6),
+                .paragraphStyle: paragraphStyle
             ]
 
-            // Position watermark in bottom right corner
-            let textSize = text.size(withAttributes: attributes)
-            let padding: CGFloat = 20
-            let xPosition = image.size.width - textSize.width - padding
+            // Main text attributes: clean white text without stroke
+            let textAttributes: [NSAttributedString.Key: Any] = [
+                .font: font,
+                .foregroundColor: UIColor.white,
+                .paragraphStyle: paragraphStyle
+            ]
+
+            // Position watermark in bottom center
+            let textSize = text.size(withAttributes: textAttributes)
+            let padding: CGFloat = max(20, image.size.height * 0.02)
+            let xPosition = (image.size.width - textSize.width) / 2
             let yPosition = image.size.height - textSize.height - padding
 
             let textRect = CGRect(
@@ -50,14 +73,19 @@ class ImageWatermarkUtility {
                 height: textSize.height
             )
 
-            // Add semi-transparent background for better readability
-            let backgroundRect = textRect.insetBy(dx: -12, dy: -8)
-            let backgroundPath = UIBezierPath(roundedRect: backgroundRect, cornerRadius: 10)
-            context.cgContext.setFillColor(UIColor.black.withAlphaComponent(0.5).cgColor)
-            backgroundPath.fill()
+            // Add semi-transparent rounded background for better readability
+            let backgroundRect = textRect.insetBy(dx: -16, dy: -10)
+            let backgroundPath = UIBezierPath(roundedRect: backgroundRect, cornerRadius: 12)
+            cgContext.setFillColor(UIColor.black.withAlphaComponent(0.65).cgColor)
+            cgContext.addPath(backgroundPath.cgPath)
+            cgContext.fillPath()
 
-            // Draw text
-            text.draw(in: textRect, withAttributes: attributes)
+            // Draw shadow text (slightly offset)
+            let shadowRect = textRect.offsetBy(dx: 1, dy: 1)
+            text.draw(in: shadowRect, withAttributes: shadowAttributes)
+
+            // Draw main text (clean, no stroke)
+            text.draw(in: textRect, withAttributes: textAttributes)
         }
 
         return watermarkedImage
