@@ -17,7 +17,7 @@ Your Gemini API key was exposed in the Git history. Follow these steps immediate
 2. Copy the new API key
 3. Restrict it to:
    - **Application restrictions**: iOS apps
-   - **Bundle ID**: `com.xauthority.ColorMine-AI`
+   - **Bundle ID**: `com.colormineai`
    - **API restrictions**: Generative Language API
 
 ## Step 3: Add New Key to Your Local Project

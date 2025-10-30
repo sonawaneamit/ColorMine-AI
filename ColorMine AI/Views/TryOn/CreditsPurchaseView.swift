@@ -344,13 +344,13 @@ struct CreditPackCard: View {
 
     private var creditAmount: Int {
         switch product.id {
-        case "com.colormine.tryon.credits.1":
+        case "com.colormineai.tryon.credits.1":
             return 1
-        case "com.colormine.tryon.credits.5":
+        case "com.colormineai.tryon.credits.5":
             return 5
-        case "com.colormine.tryon.credits.15":
+        case "com.colormineai.tryon.credits.15":
             return 15
-        case "com.colormine.tryon.credits.30":
+        case "com.colormineai.tryon.credits.30":
             return 30
         default:
             return 0
