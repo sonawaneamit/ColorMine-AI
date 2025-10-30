@@ -40,10 +40,27 @@ struct UserProfile: Codable, Identifiable {
     var contrastCard: ContrastCard?
     var neutralsMetalsCard: NeutralsMetalsCard?
 
+    // AI Try-On (new feature)
+    var fullBodyPhotoData: Data?             // Full body photo for try-on
+    var tryOnCredits: Int = 0                // IAP credits for try-ons
+    var savedGarments: [GarmentItem] = []    // Saved clothing items
+    var tryOnHistory: [TryOnResult] = []     // Past try-on results
+
     // Computed property to get UIImage from Data
     var selfieImage: UIImage? {
         guard let data = selfieImageData else { return nil }
         return UIImage(data: data)
+    }
+
+    // Computed property for full body image
+    var fullBodyImage: UIImage? {
+        guard let data = fullBodyPhotoData else { return nil }
+        return UIImage(data: data)
+    }
+
+    // Check if user has set up try-on
+    var hasTryOnSetup: Bool {
+        return fullBodyPhotoData != nil
     }
 
     init(
