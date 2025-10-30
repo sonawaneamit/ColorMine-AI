@@ -20,8 +20,8 @@ class CreditsManager: ObservableObject {
     private let productIDs = [
         "com.colormineai.tryon.credits.1",    // 1 credit - $6.99
         "com.colormineai.tryon.credits.5",    // 5 credits - $15.00 ($3.00 ea, save 57%)
-        "com.colormineai.tryon.credits.15",   // 15 credits - $34.05 ($2.27 ea, save 68%)
-        "com.colormineai.tryon.credits.30"    // 30 credits - $54.90 ($1.83 ea, save 74%)
+        "com.colormineai.tryon.credits.15",   // 15 credits - $34.00 ($2.27 ea, save 68%)
+        "com.colormineai.tryon.credits.30"    // 30 credits - $55.00 ($1.83 ea, save 74%)
     ]
 
     private var updateListenerTask: Task<Void, Error>?

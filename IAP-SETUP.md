@@ -44,7 +44,7 @@ Create **4 consumable products** with the following details:
 - **Type**: Consumable
 - **Reference Name**: `ColorMine - 15 Try-On Credits`
 - **Product ID**: `com.colormineai.tryon.credits.15`
-- **Price**: $34.05 USD (use "View All Pricing" to set exactly $34.05)
+- **Price**: $34.00 USD (Tier 34)
 - **Localizations (English - U.S.)**:
   - **Display Name**: `15 Try-On Credits`
   - **Description**: `Fifteen credits for virtual try-ons. Save 68% per credit. Most popular choice!`
@@ -53,7 +53,7 @@ Create **4 consumable products** with the following details:
 - **Type**: Consumable
 - **Reference Name**: `ColorMine - 30 Try-On Credits`
 - **Product ID**: `com.colormineai.tryon.credits.30`
-- **Price**: $54.90 USD (use "View All Pricing" to set exactly $54.90)
+- **Price**: $55.00 USD (Tier 55)
 - **Localizations (English - U.S.)**:
   - **Display Name**: `30 Try-On Credits`
   - **Description**: `Thirty credits for virtual try-ons. Save 74% per credit. Best value!`
@@ -132,8 +132,8 @@ For each product:
 |------|---------|-------|------------|-------------------|
 | Single | 1 | $6.99 | $6.99 | — |
 | Small | 5 | $15.00 | $3.00 | 57% off |
-| Popular | 15 | $34.05 | $2.27 | 68% off |
-| Best Value | 30 | $54.90 | $1.83 | 74% off |
+| Popular | 15 | $34.00 | $2.27 | 68% off |
+| Best Value | 30 | $55.00 | $1.83 | 74% off |
 
 This pricing encourages users to purchase larger packs for better value.
 
