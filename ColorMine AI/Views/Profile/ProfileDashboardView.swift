@@ -222,7 +222,7 @@ struct ProfileTab: View {
                                 .foregroundColor(.purple.opacity(0.5))
                             Text("Your personalized guide is being created")
                                 .font(.headline)
-                            Text("This may take 2-3 minutes")
+                            Text("This is worth the wait — usually 2-3 minutes")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                         }

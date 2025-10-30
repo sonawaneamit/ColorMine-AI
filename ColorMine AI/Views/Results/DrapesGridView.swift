@@ -103,7 +103,7 @@ struct DrapesGridView: View {
                         VStack(spacing: 16) {
                             ProgressView()
                                 .scaleEffect(1.5)
-                            Text("Loading your drapes...")
+                            Text("Creating your color story...")
                                 .font(.headline)
                                 .foregroundColor(.secondary)
                         }

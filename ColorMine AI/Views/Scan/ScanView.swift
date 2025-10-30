@@ -51,7 +51,7 @@ struct ScanView: View {
                         VStack(spacing: 16) {
                             ProgressView()
                                 .scaleEffect(1.5)
-                            Text("Analyzing your colors...")
+                            Text("Reading your unique color story...")
                                 .font(.headline)
                                 .foregroundColor(.secondary)
                         }
