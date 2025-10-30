@@ -144,6 +144,32 @@ struct PaletteSelectionView: View {
                         .padding()
                         .background(Color(.systemBackground))
                         .cornerRadius(12)
+
+                        // AI Reasoning (if available from OpenAI)
+                        if let reasoning = profile.reasoning {
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    Image(systemName: "brain.head.profile")
+                                        .foregroundColor(.purple)
+                                    Text("Why This Season?")
+                                        .font(.headline)
+                                        .foregroundColor(.primary)
+                                }
+
+                                Text(reasoning)
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .padding()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.purple.opacity(0.05))
+                            .cornerRadius(12)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.purple.opacity(0.2), lineWidth: 1)
+                            )
+                        }
                     }
                     .padding(.horizontal)
                     .padding(.top, 20)

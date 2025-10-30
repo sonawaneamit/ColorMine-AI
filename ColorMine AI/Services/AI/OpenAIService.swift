@@ -24,7 +24,8 @@ class OpenAIService {
         season: ColorSeason,
         undertone: Undertone,
         contrast: Contrast,
-        confidence: Double
+        confidence: Double,
+        reasoning: String?
     ) {
         // Convert image to base64
         guard let imageData = selfieImage.jpegData(compressionQuality: 0.8) else {
@@ -198,14 +199,15 @@ class OpenAIService {
             throw OpenAIError.invalidResponse
         }
 
-        // Log reasoning if available
-        if let reasoning = analysisResult["reasoning"] as? String {
+        // Extract reasoning if available
+        let reasoning = analysisResult["reasoning"] as? String
+        if let reasoning = reasoning {
             print("🧠 OpenAI reasoning: \(reasoning)")
         }
 
         print("✅ OpenAI analysis complete: \(season.rawValue), \(undertone.rawValue), \(contrast.rawValue)")
 
-        return (season: season, undertone: undertone, contrast: contrast, confidence: confidence)
+        return (season: season, undertone: undertone, contrast: contrast, confidence: confidence, reasoning: reasoning)
     }
 }
 

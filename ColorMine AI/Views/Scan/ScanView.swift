@@ -13,6 +13,8 @@ struct ScanView: View {
     @State private var showCamera = false
     @State private var showPhotoLibrary = false
     @State private var capturedImage: UIImage?
+    @State private var displayedImage: UIImage?  // The image to display (may be flipped)
+    @State private var isFlipped = false  // Track if user manually flipped the image
     @State private var isAnalyzing = false
     @State private var errorMessage: String?
     @State private var navigateToResults = false
@@ -23,14 +25,27 @@ struct ScanView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 30) {
-                if let image = capturedImage {
-                    // Show captured image
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 400)
-                        .cornerRadius(20)
-                        .shadow(radius: 10)
+                if let image = displayedImage {
+                    VStack(spacing: 12) {
+                        // Show captured image
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 400)
+                            .cornerRadius(20)
+                            .shadow(radius: 10)
+
+                        // Flip button
+                        Button(action: flipImage) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "arrow.left.and.right.righttriangle.left.righttriangle.right")
+                                    .font(.caption)
+                                Text("Flip Image")
+                                    .font(.caption)
+                            }
+                            .foregroundColor(.purple)
+                        }
+                    }
 
                     if isAnalyzing {
                         VStack(spacing: 16) {
@@ -130,6 +145,11 @@ struct ScanView: View {
         }
         .navigationTitle("Color Scan")
         .navigationBarTitleDisplayMode(.inline)
+        .onChange(of: capturedImage) { oldValue, newValue in
+            // When a new image is captured, set it as the displayed image
+            displayedImage = newValue
+            isFlipped = false  // Reset flip state
+        }
         .sheet(isPresented: $showCamera) {
             ImagePicker(image: $capturedImage, sourceType: .camera)
         }
@@ -138,10 +158,25 @@ struct ScanView: View {
         }
     }
 
+    // MARK: - Flip Image
+    private func flipImage() {
+        guard let current = displayedImage else { return }
+
+        // Toggle flip state
+        isFlipped.toggle()
+
+        // Flip the image
+        if let flipped = current.flipped() {
+            displayedImage = flipped
+        }
+    }
+
     // MARK: - Retake Photo
     private func retakePhoto() {
         capturedImage = nil
+        displayedImage = nil
         errorMessage = nil
+        isFlipped = false
     }
 
     // MARK: - Analyze Image
@@ -156,20 +191,21 @@ struct ScanView: View {
                 // Detect face
                 let faceObservation = try await VisionService.shared.detectFaceLandmarks(in: image)
 
-                // Analyze colors (supports both Gemini AI and on-device ML)
+                // Analyze colors (supports both OpenAI and on-device ML)
                 let result = try await ColorAnalyzer.shared.analyzeSkinTone(from: image, faceObservation: faceObservation)
 
                 // Save selfie data
                 let imageData = image.jpegData(compressionQuality: 0.8)
 
                 // Create profile
-                let profile = UserProfile(
+                var profile = UserProfile(
                     selfieImageData: imageData,
                     season: result.season,
                     undertone: result.undertone,
                     contrast: result.contrast,
                     confidence: result.confidence
                 )
+                profile.reasoning = result.reasoning  // Save AI reasoning if available
 
                 appState.saveProfile(profile)
 

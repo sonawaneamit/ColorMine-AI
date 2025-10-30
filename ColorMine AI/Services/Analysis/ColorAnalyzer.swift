@@ -25,7 +25,8 @@ class ColorAnalyzer {
         season: ColorSeason,
         undertone: Undertone,
         contrast: Contrast,
-        confidence: Double
+        confidence: Double,
+        reasoning: String?
     ) {
         if useAI {
             print("🤖 Using OpenAI GPT-4 Vision for season analysis")
@@ -49,13 +50,14 @@ class ColorAnalyzer {
         season: ColorSeason,
         undertone: Undertone,
         contrast: Contrast,
-        confidence: Double
+        confidence: Double,
+        reasoning: String?
     ) {
         print("🎨 Starting on-device color analysis...")
 
         guard let cgImage = image.cgImage else {
             print("❌ ERROR: cgImage is nil, returning default softAutumn")
-            return (.softAutumn, .neutral, .medium, 0.5)
+            return (.softAutumn, .neutral, .medium, 0.5, nil)
         }
 
         print("✅ cgImage loaded successfully")
@@ -112,7 +114,7 @@ class ColorAnalyzer {
         let confidence = calculateConfidence(image: image, rgb: rgb)
         print("✨ Confidence: \(String(format: "%.1f", confidence * 100))%")
 
-        return (season, undertone, contrast, confidence)
+        return (season, undertone, contrast, confidence, nil)  // On-device ML doesn't provide reasoning
     }
 
     // MARK: - Enhanced Multi-Region Sampling

@@ -42,11 +42,21 @@ struct ImagePicker: UIViewControllerRepresentable {
         }
 
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+            var pickedImage: UIImage?
+
             if let editedImage = info[.editedImage] as? UIImage {
-                parent.image = editedImage
+                pickedImage = editedImage
             } else if let originalImage = info[.originalImage] as? UIImage {
-                parent.image = originalImage
+                pickedImage = originalImage
             }
+
+            // Mirror the image if it's from the front camera (people are used to seeing themselves mirrored)
+            if let image = pickedImage, parent.sourceType == .camera {
+                parent.image = image.withHorizontallyFlippedOrientation()
+            } else {
+                parent.image = pickedImage
+            }
+
             parent.dismiss()
         }
 

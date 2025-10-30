@@ -18,6 +18,7 @@ struct UserProfile: Codable, Identifiable {
     var undertone: Undertone
     var contrast: Contrast
     var confidence: Double
+    var reasoning: String? // AI explanation of why this season was chosen
 
     // Color Selections
     var favoriteColors: [ColorSwatch] = []      // 3-8 selected from palette
