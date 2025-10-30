@@ -93,8 +93,9 @@ struct TryOnResultView: View {
                 }
             }
             .sheet(isPresented: $showShareSheet) {
-                if let image = resultImage {
-                    ShareSheet(items: [image])
+                if let image = resultImage,
+                   let watermarkedImage = addWatermark(to: image) {
+                    ShareSheet(items: [watermarkedImage])
                 }
             }
         }
@@ -147,33 +148,31 @@ struct TryOnResultView: View {
                 }
             }
 
-            // Recommended Colors
-            if !profile.favoriteColors.isEmpty {
-                let palette = profile.favoriteColors
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Your Best Colors")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
+            // Recommended Colors - Show all season colors
+            let seasonPalette = SeasonPalettes.palette(for: profile.season)
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Your Best Colors")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
 
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            ForEach(palette.prefix(8)) { swatch in
-                                VStack(spacing: 4) {
-                                    Circle()
-                                        .fill(swatch.color)
-                                        .frame(width: 50, height: 50)
-                                        .overlay {
-                                            Circle()
-                                                .stroke(Color(.systemGray4), lineWidth: 1)
-                                        }
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(seasonPalette.prefix(12)) { swatch in
+                            VStack(spacing: 4) {
+                                Circle()
+                                    .fill(swatch.color)
+                                    .frame(width: 50, height: 50)
+                                    .overlay {
+                                        Circle()
+                                            .stroke(Color(.systemGray4), lineWidth: 1)
+                                    }
 
-                                    Text(swatch.name)
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
-                                        .lineLimit(1)
-                                }
-                                .frame(width: 60)
+                                Text(swatch.name)
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(1)
                             }
+                            .frame(width: 60)
                         }
                     }
                 }
@@ -187,27 +186,42 @@ struct TryOnResultView: View {
     // MARK: - Color Match Section
     @ViewBuilder
     private func colorMatchSection(score: Int) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: score >= 70 ? "checkmark.circle.fill" : "info.circle.fill")
-                .font(.title2)
-                .foregroundColor(score >= 70 ? .green : .orange)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                Image(systemName: score >= 70 ? "checkmark.circle.fill" : "info.circle.fill")
+                    .font(.title2)
+                    .foregroundColor(score >= 70 ? .green : .orange)
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Color Match")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Color Match")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
 
-                Text(colorMatchMessage(score: score))
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                    Text(colorMatchMessage(score: score))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                Spacer()
+
+                Text("\(score)%")
+                    .font(.title3)
+                    .fontWeight(.bold)
+                    .foregroundColor(score >= 70 ? .green : .orange)
             }
 
-            Spacer()
+            // Reasoning
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Why this score?")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.secondary)
 
-            Text("\(score)%")
-                .font(.title3)
-                .fontWeight(.bold)
-                .foregroundColor(score >= 70 ? .green : .orange)
+                Text(colorMatchReasoning(score: score))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .padding()
         .background(Color(.systemBackground))
@@ -270,6 +284,51 @@ struct TryOnResultView: View {
         }
     }
 
+    private func addWatermark(to image: UIImage) -> UIImage? {
+        let renderer = UIGraphicsImageRenderer(size: image.size)
+
+        return renderer.image { context in
+            // Draw original image
+            image.draw(at: .zero)
+
+            // Configure watermark text
+            let watermarkText = "ColorMine AI"
+            let fontSize = image.size.width * 0.04 // 4% of image width
+            let font = UIFont.systemFont(ofSize: fontSize, weight: .semibold)
+
+            // Text attributes
+            let paragraphStyle = NSMutableParagraphStyle()
+            paragraphStyle.alignment = .right
+
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: font,
+                .foregroundColor: UIColor.white.withAlphaComponent(0.7),
+                .paragraphStyle: paragraphStyle
+            ]
+
+            // Calculate text size and position (bottom right with padding)
+            let attributedString = NSAttributedString(string: watermarkText, attributes: attributes)
+            let textSize = attributedString.size()
+
+            let padding: CGFloat = image.size.width * 0.03 // 3% padding
+            let textRect = CGRect(
+                x: image.size.width - textSize.width - padding,
+                y: image.size.height - textSize.height - padding,
+                width: textSize.width,
+                height: textSize.height
+            )
+
+            // Draw semi-transparent background behind text
+            let backgroundRect = textRect.insetBy(dx: -padding/2, dy: -padding/3)
+            UIColor.black.withAlphaComponent(0.5).setFill()
+            let backgroundPath = UIBezierPath(roundedRect: backgroundRect, cornerRadius: 8)
+            backgroundPath.fill()
+
+            // Draw watermark text
+            watermarkText.draw(in: textRect, withAttributes: attributes)
+        }
+    }
+
     private func colorMatchMessage(score: Int) -> String {
         switch score {
         case 80...100:
@@ -283,9 +342,37 @@ struct TryOnResultView: View {
         }
     }
 
+    private func colorMatchReasoning(score: Int) -> String {
+        guard let profile = userProfile else {
+            return "This score reflects how well the garment color aligns with your seasonal color palette."
+        }
+
+        let seasonName = profile.season.rawValue
+
+        switch score {
+        case 80...100:
+            return "This garment's color is nearly identical to colors in your \(seasonName) palette. The hue, saturation, and brightness perfectly complement your natural coloring."
+        case 70..<80:
+            return "This garment's color harmonizes well with your \(seasonName) palette. While not a perfect match, it falls within the same color family and will enhance your features."
+        case 50..<70:
+            return "This garment's color is acceptable for your \(seasonName) palette but isn't in your ideal range. The hue or saturation may be slightly off. You might want to check if it comes in a color closer to your best shades."
+        case 30..<50:
+            return "This garment's color doesn't align well with your \(seasonName) palette. The hue, warmth, or intensity may clash with your natural coloring. Consider exploring the 'Your Best Colors' section for better alternatives."
+        default:
+            return "This garment's color is significantly different from your \(seasonName) palette. The color temperature, saturation, or brightness likely conflicts with your natural undertones. We recommend choosing colors from your seasonal palette for the most flattering look."
+        }
+    }
+
     private func openStore() {
-        // This would open the store browser or external link
-        print("📱 Opening store: \(result.garmentItem.sourceStore ?? "")")
+        // Open the store website
+        if let storeName = result.garmentItem.sourceStore,
+           let store = Store.predefinedStores.first(where: { $0.name == storeName }),
+           let url = URL(string: store.url) {
+            UIApplication.shared.open(url)
+            print("📱 Opening store: \(storeName) at \(store.url)")
+        } else {
+            print("❌ Unable to open store URL")
+        }
     }
 }
 
