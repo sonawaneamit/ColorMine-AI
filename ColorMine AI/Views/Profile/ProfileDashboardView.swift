@@ -113,8 +113,29 @@ struct ProfileTab: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 30) {
-                // Header
+                // Header with Selfie and Analysis
                 VStack(spacing: 16) {
+                    // Selfie photo
+                    if let selfieImage = profile.selfieImage {
+                        Image(uiImage: selfieImage)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 120, height: 120)
+                            .clipShape(Circle())
+                            .overlay(
+                                Circle()
+                                    .stroke(
+                                        LinearGradient(
+                                            colors: [.purple, .pink],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        ),
+                                        lineWidth: 3
+                                    )
+                            )
+                            .shadow(radius: 8)
+                    }
+
                     // Season badge
                     Text(profile.season.rawValue)
                         .font(.system(size: 36, weight: .bold))
@@ -130,7 +151,7 @@ struct ProfileTab: View {
                     HStack(spacing: 16) {
                         InfoPill(icon: "circle.hexagongrid", text: profile.undertone.rawValue)
                         InfoPill(icon: "circle.lefthalf.filled", text: profile.contrast.rawValue)
-                        InfoPill(icon: "calendar", text: profile.scanDate.formatted(date: .abbreviated, time: .omitted))
+                        InfoPill(icon: "checkmark.seal", text: "\(Int(profile.confidence * 100))%")
                     }
 
                     // Focus color badge
