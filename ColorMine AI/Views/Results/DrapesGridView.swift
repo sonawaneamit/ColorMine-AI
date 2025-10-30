@@ -54,14 +54,23 @@ struct DrapesGridView: View {
                                     ReviewManager.shared.requestReviewAfterDrapes()
                                 }
 
-                            // Zoom hint
-                            HStack(spacing: 6) {
-                                Image(systemName: "arrow.up.left.and.arrow.down.right")
-                                    .font(.caption)
-                                Text("Tap to zoom")
-                                    .font(.caption)
+                            // Micro-learning moment
+                            VStack(spacing: 8) {
+                                Text("Notice how each color brings out different qualities in you")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal)
+
+                                // Zoom hint
+                                HStack(spacing: 6) {
+                                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                                        .font(.caption)
+                                    Text("Tap to zoom")
+                                        .font(.caption)
+                                }
+                                .foregroundColor(.secondary)
                             }
-                            .foregroundColor(.secondary)
 
                             // Share Button
                             Button(action: {

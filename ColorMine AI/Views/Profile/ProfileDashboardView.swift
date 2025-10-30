@@ -77,16 +77,16 @@ struct ProfileDashboardView: View {
                         .environmentObject(appState)
                         .navigationBarBackButtonHidden(false)
                 }
-                .confirmationDialog("Regenerate Content", isPresented: $showRegenerateOptions) {
-                    Button("Change Focus Color & Regenerate Packs") {
+                .confirmationDialog("Update Your Guide", isPresented: $showRegenerateOptions) {
+                    Button("Switch to a different color") {
                         regenerateFromFocusColor()
                     }
-                    Button("Retake Selfie & Start Over") {
+                    Button("Start fresh with a new photo") {
                         retakeSelfie()
                     }
                     Button("Cancel", role: .cancel) {}
                 } message: {
-                    Text("Choose what you'd like to regenerate")
+                    Text("What would you like to change?")
                 }
                 .onAppear {
                     // Clear notification badge when viewing dashboard

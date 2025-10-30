@@ -135,14 +135,14 @@ struct PackSelectionView: View {
                     // Info box
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Image(systemName: "info.circle.fill")
-                                .foregroundColor(.blue)
-                            Text("Generation Time")
+                            Image(systemName: "sparkles")
+                                .foregroundColor(.purple)
+                            Text("Worth the Wait")
                                 .font(.subheadline)
                                 .fontWeight(.semibold)
                         }
 
-                        Text("Each pack takes about 30-60 seconds to generate. You can always generate more packs later from your profile.")
+                        Text("Your style guide is being custom-created with AI. You'll get a notification when it's ready — usually 2-3 minutes.")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
