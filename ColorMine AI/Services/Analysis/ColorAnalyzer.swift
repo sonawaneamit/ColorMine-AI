@@ -30,24 +30,41 @@ class ColorAnalyzer {
 
         print("✅ cgImage loaded successfully")
 
-        // Sample RGB from face
+        // Sample RGB from face (skin, sclera, lips)
         let rgb = sampleSkinTone(from: cgImage, faceObservation: faceObservation)
         print("📊 Sampled RGB: R=\(String(format: "%.3f", rgb.r)), G=\(String(format: "%.3f", rgb.g)), B=\(String(format: "%.3f", rgb.b))")
 
-        // Calculate undertone
-        let undertone = calculateUndertone(rgb: rgb)
-        print("🌡️ Calculated undertone: \(undertone.rawValue)")
+        // Convert to LAB for accurate analysis
+        let lab = rgbToLab(r: rgb.r, g: rgb.g, b: rgb.b)
 
-        // Calculate depth
+        // Calculate chroma (saturation/clarity)
+        let skinChroma = calculateChroma(lab: lab)
+        print("🎨 Skin chroma: \(String(format: "%.2f", skinChroma))")
+
+        // Calculate depth (using L*)
         let depth = calculateDepth(rgb: rgb)
         print("💡 Calculated depth: \(depth)")
+
+        // Calculate undertone (depth-adjusted)
+        let undertone = calculateUndertone(rgb: rgb, depth: depth)
+        print("🌡️ Calculated undertone: \(undertone.rawValue)")
 
         // Calculate contrast
         let contrast = calculateContrast(from: image, faceObservation: faceObservation)
         print("⚖️ Calculated contrast: \(contrast.rawValue)")
 
-        // Match season
-        let season = matchSeason(undertone: undertone, depth: depth, contrast: contrast)
+        // Calculate relative contrast (skin to features)
+        let relativeContrast = calculateRelativeContrast(from: cgImage, faceObservation: faceObservation, skinRGB: rgb)
+        print("👁️ Relative contrast: \(String(format: "%.3f", relativeContrast))")
+
+        // Match season with chroma gates
+        let season = matchSeasonWithChroma(
+            undertone: undertone,
+            depth: depth,
+            contrast: contrast,
+            skinChroma: skinChroma,
+            relativeContrast: relativeContrast
+        )
         print("🍂 Matched season: \(season.rawValue)")
 
         // Calculate confidence
@@ -230,8 +247,18 @@ class ColorAnalyzer {
         return (L: L, a: a, b: bValue)
     }
 
-    // MARK: - Undertone Calculation (LAB-based)
-    private func calculateUndertone(rgb: (r: CGFloat, g: CGFloat, b: CGFloat)) -> Undertone {
+    // MARK: - Chroma Calculation
+    // Chroma = saturation/clarity of the skin color
+    private func calculateChroma(lab: (L: CGFloat, a: CGFloat, b: CGFloat)) -> CGFloat {
+        // Chroma in LAB = sqrt(a² + b²)
+        // Higher chroma = more vivid/saturated colors
+        // Lower chroma = more muted/grayed colors
+        let chroma = sqrt(lab.a * lab.a + lab.b * lab.b)
+        return chroma
+    }
+
+    // MARK: - Undertone Calculation (LAB-based, Depth-Adjusted)
+    private func calculateUndertone(rgb: (r: CGFloat, g: CGFloat, b: CGFloat), depth: String) -> Undertone {
         // Convert to LAB for accurate undertone detection
         let lab = rgbToLab(r: rgb.r, g: rgb.g, b: rgb.b)
 
@@ -248,17 +275,66 @@ class ColorAnalyzer {
 
         print("🔬 LAB values: L*=\(String(format: "%.2f", lab.L)), a*=\(String(format: "%.2f", aStar)), b*=\(String(format: "%.2f", bStar)), score=\(String(format: "%.2f", undertoneScore))")
 
-        // Thresholds calibrated for all skin tones
-        if undertoneScore < -3 {
-            return .cool  // Strong blue undertones
-        } else if undertoneScore < 1 {
-            return .coolNeutral  // Slight blue/pink undertones
-        } else if undertoneScore > 8 {
-            return .warm  // Strong yellow/golden undertones
-        } else if undertoneScore > 4 {
-            return .warmNeutral  // Slight yellow undertones
-        } else {
-            return .neutral  // Balanced undertones
+        // DEPTH-ADJUSTED THRESHOLDS
+        // Deeper skin often reads warmer due to camera lifting b* values
+        // We shrink the warm window for deep skin to compensate
+
+        switch depth {
+        case "deep":
+            // Narrower thresholds for deep skin
+            if undertoneScore < 0 {
+                return .cool
+            } else if undertoneScore < 3 {
+                return .coolNeutral
+            } else if undertoneScore > 9 {
+                return .warm
+            } else if undertoneScore > 6 {
+                return .warmNeutral
+            } else {
+                return .neutral
+            }
+
+        case "medium":
+            // Balanced thresholds for medium skin
+            if undertoneScore < -1 {
+                return .cool
+            } else if undertoneScore < 2 {
+                return .coolNeutral
+            } else if undertoneScore > 8 {
+                return .warm
+            } else if undertoneScore > 5 {
+                return .warmNeutral
+            } else {
+                return .neutral
+            }
+
+        case "light":
+            // Original thresholds work well for light skin
+            if undertoneScore < -3 {
+                return .cool
+            } else if undertoneScore < 1 {
+                return .coolNeutral
+            } else if undertoneScore > 8 {
+                return .warm
+            } else if undertoneScore > 4 {
+                return .warmNeutral
+            } else {
+                return .neutral
+            }
+
+        default:
+            // Fallback to medium thresholds
+            if undertoneScore < -1 {
+                return .cool
+            } else if undertoneScore < 2 {
+                return .coolNeutral
+            } else if undertoneScore > 8 {
+                return .warm
+            } else if undertoneScore > 5 {
+                return .warmNeutral
+            } else {
+                return .neutral
+            }
         }
     }
 
@@ -334,157 +410,166 @@ class ColorAnalyzer {
         return variance
     }
 
-    // MARK: - Season Matching (Complete Coverage)
-    private func matchSeason(undertone: Undertone, depth: String, contrast: Contrast) -> ColorSeason {
-        print("🔍 Matching season with: undertone=\(undertone.rawValue), depth=\(depth), contrast=\(contrast.rawValue)")
+    // MARK: - Relative Contrast Calculation
+    // Compare skin to eye whites (sclera) and lips for feature clarity
+    private func calculateRelativeContrast(from cgImage: CGImage, faceObservation: VNFaceObservation, skinRGB: (r: CGFloat, g: CGFloat, b: CGFloat)) -> CGFloat {
+        let imageSize = CGSize(width: cgImage.width, height: cgImage.height)
+        let boundingBox = faceObservation.boundingBox
 
-        // Complete decision tree - covers all 45 combinations (5 undertones × 3 depths × 3 contrasts)
-        // NO defaults - every combination explicitly mapped
+        // Sample sclera (eye whites) - left eye
+        let scleraX = (boundingBox.origin.x + boundingBox.width * 0.3) * imageSize.width
+        let scleraY = (1 - boundingBox.origin.y - boundingBox.height * 0.6) * imageSize.height
 
-        switch undertone {
+        var scleraColor: (r: CGFloat, g: CGFloat, b: CGFloat)? = nil
+        for xOffset in [-5, 0, 5] {
+            for yOffset in [-5, 0, 5] {
+                let point = CGPoint(x: scleraX + CGFloat(xOffset), y: scleraY + CGFloat(yOffset))
+                if let color = getPixelColor(at: point, in: cgImage) {
+                    scleraColor = color
+                    break
+                }
+            }
+            if scleraColor != nil { break }
+        }
 
-        // ===== COOL UNDERTONES =====
-        case .cool:
-            switch (depth, contrast) {
-            // Deep + Cool
-            case ("deep", .high):
-                return .deepWinter  // Deep skin + cool + dramatic
-            case ("deep", .medium):
-                return .deepWinter  // Deep skin + cool + moderate
-            case ("deep", .low):
-                return .coolWinter  // Deep skin + cool + soft
+        // Sample lips - lower lip center
+        let lipX = (boundingBox.origin.x + boundingBox.width * 0.5) * imageSize.width
+        let lipY = (1 - boundingBox.origin.y - boundingBox.height * 0.15) * imageSize.height
 
-            // Medium + Cool
-            case ("medium", .high):
-                return .clearWinter  // Medium skin + cool + dramatic
-            case ("medium", .medium):
-                return .coolSummer  // Medium skin + cool + moderate
-            case ("medium", .low):
-                return .softSummer  // Medium skin + cool + soft
+        var lipColor: (r: CGFloat, g: CGFloat, b: CGFloat)? = nil
+        for xOffset in [-5, 0, 5] {
+            for yOffset in [-5, 0, 5] {
+                let point = CGPoint(x: lipX + CGFloat(xOffset), y: lipY + CGFloat(yOffset))
+                if let color = getPixelColor(at: point, in: cgImage) {
+                    lipColor = color
+                    break
+                }
+            }
+            if lipColor != nil { break }
+        }
 
-            // Light + Cool
-            case ("light", .high):
-                return .clearWinter  // Light skin + cool + dramatic
-            case ("light", .medium):
-                return .lightSummer  // Light skin + cool + moderate
-            case ("light", .low):
-                return .softSummer  // Light skin + cool + soft
+        // Calculate luminance differences
+        let skinLum = 0.299 * skinRGB.r + 0.587 * skinRGB.g + 0.114 * skinRGB.b
 
-            default:
-                return .coolWinter
+        var totalDiff: CGFloat = 0
+        var samples = 0
+
+        if let sclera = scleraColor {
+            let scleraLum = 0.299 * sclera.r + 0.587 * sclera.g + 0.114 * sclera.b
+            totalDiff += abs(skinLum - scleraLum)
+            samples += 1
+        }
+
+        if let lip = lipColor {
+            let lipLum = 0.299 * lip.r + 0.587 * lip.g + 0.114 * lip.b
+            totalDiff += abs(skinLum - lipLum)
+            samples += 1
+        }
+
+        return samples > 0 ? totalDiff / CGFloat(samples) : 0
+    }
+
+    // MARK: - Season Matching with Chroma Gates (Fixed Autumn Bias)
+    private func matchSeasonWithChroma(
+        undertone: Undertone,
+        depth: String,
+        contrast: Contrast,
+        skinChroma: CGFloat,
+        relativeContrast: CGFloat
+    ) -> ColorSeason {
+        print("🔍 Matching with: undertone=\(undertone.rawValue), depth=\(depth), contrast=\(contrast.rawValue), chroma=\(String(format: "%.1f", skinChroma)), relContrast=\(String(format: "%.2f", relativeContrast))")
+
+        // CHROMA THRESHOLDS - THE KEY TO FIXING AUTUMN BIAS
+        // High chroma (>18) = clear, vivid colors → Spring/Winter
+        // Medium chroma (12-18) = moderate saturation → transitional
+        // Low chroma (<12) = muted, soft → Autumn/Summer
+
+        // ===== PRIORITY 1: WARM/WARM-NEUTRAL - SPLIT BY CHROMA =====
+        if undertone == .warm || undertone == .warmNeutral {
+            print("🔥 Warm undertone detected - checking chroma gate")
+
+            // HIGH CLARITY WARM → SPRING (not Autumn!)
+            if skinChroma > 18 {
+                print("✨ High chroma (>18) - routing to Spring")
+                if depth == "light" {
+                    return contrast == .high ? .clearSpring : .warmSpring
+                } else if depth == "medium" {
+                    return (contrast == .high || contrast == .medium) ? .warmSpring : .warmAutumn
+                } else {
+                    // Deep + warm + clear
+                    return contrast == .high ? .deepAutumn : .warmAutumn
+                }
             }
 
-        // ===== COOL NEUTRAL UNDERTONES =====
-        case .coolNeutral:
-            switch (depth, contrast) {
-            case ("deep", .high):
-                return .deepWinter
-            case ("deep", .medium), ("deep", .low):
-                return .coolWinter
-
-            case ("medium", .high):
-                return .clearWinter
-            case ("medium", .medium):
-                return .coolSummer
-            case ("medium", .low):
-                return .softSummer
-
-            case ("light", .high):
-                return .clearWinter
-            case ("light", .medium):
-                return .lightSummer
-            case ("light", .low):
-                return .lightSpring  // Bridge to neutral
-
-            default:
-                return .coolWinter
+            // MEDIUM CLARITY WARM → Check contrast
+            if skinChroma > 12 {
+                print("💫 Medium chroma (12-18) - contrast decides")
+                if depth == "light" {
+                    return contrast == .low ? .lightSpring : .warmSpring
+                } else if depth == "medium" {
+                    // Medium depth warm - use relative contrast
+                    if relativeContrast > 0.12 || contrast == .high {
+                        return .warmSpring  // Clearer features → Spring
+                    } else {
+                        return .warmAutumn  // Softer features → Autumn
+                    }
+                } else {
+                    return contrast == .high ? .deepAutumn : .warmAutumn
+                }
             }
 
-        // ===== NEUTRAL UNDERTONES =====
-        case .neutral:
-            switch (depth, contrast) {
-            case ("deep", .high):
-                return .deepAutumn  // Neutral deep with contrast
-            case ("deep", .medium):
+            // LOW CLARITY WARM → AUTUMN
+            print("🍂 Low chroma (<12) - routing to Autumn")
+            if depth == "deep" {
+                return contrast == .low ? .warmAutumn : .deepAutumn
+            } else if depth == "medium" {
                 return .softAutumn
-            case ("deep", .low):
-                return .softAutumn
-
-            case ("medium", .high):
-                return .warmAutumn  // Neutral medium with contrast
-            case ("medium", .medium):
-                return .softAutumn
-            case ("medium", .low):
-                return .softSummer  // Bridge to cool
-
-            case ("light", .high):
-                return .clearSpring
-            case ("light", .medium):
-                return .lightSpring
-            case ("light", .low):
-                return .lightSpring  // Soft and delicate
-
-            default:
-                return .softAutumn
-            }
-
-        // ===== WARM NEUTRAL UNDERTONES =====
-        case .warmNeutral:
-            switch (depth, contrast) {
-            case ("deep", .high):
-                return .deepAutumn
-            case ("deep", .medium), ("deep", .low):
-                return .warmAutumn
-
-            case ("medium", .high):
-                return .warmAutumn
-            case ("medium", .medium):
-                return .warmAutumn
-            case ("medium", .low):
-                return .softAutumn
-
-            case ("light", .high):
-                return .clearSpring
-            case ("light", .medium):
-                return .warmSpring
-            case ("light", .low):
-                return .lightSpring
-
-            default:
-                return .warmAutumn
-            }
-
-        // ===== WARM UNDERTONES =====
-        case .warm:
-            switch (depth, contrast) {
-            // Deep + Warm
-            case ("deep", .high):
-                return .deepAutumn  // Deep skin + warm + dramatic
-            case ("deep", .medium):
-                return .deepAutumn  // Deep skin + warm + moderate
-            case ("deep", .low):
-                return .warmAutumn  // Deep skin + warm + soft
-
-            // Medium + Warm
-            case ("medium", .high):
-                return .warmAutumn  // Medium skin + warm + dramatic
-            case ("medium", .medium):
-                return .warmAutumn  // Medium skin + warm + moderate
-            case ("medium", .low):
-                return .softAutumn  // Medium skin + warm + soft
-
-            // Light + Warm
-            case ("light", .high):
-                return .clearSpring  // Light skin + warm + dramatic
-            case ("light", .medium):
-                return .warmSpring  // Light skin + warm + moderate
-            case ("light", .low):
-                return .lightSpring  // Light skin + warm + soft
-
-            default:
-                return .warmAutumn
+            } else {
+                return contrast == .low ? .lightSpring : .warmSpring
             }
         }
+
+        // ===== PRIORITY 2: COOL UNDERTONES =====
+        if undertone == .cool {
+            if depth == "deep" {
+                return (contrast == .high || contrast == .medium) ? .deepWinter : .coolWinter
+            } else if depth == "medium" {
+                return contrast == .high ? .clearWinter : (contrast == .medium ? .coolSummer : .softSummer)
+            } else {
+                return contrast == .high ? .clearWinter : (contrast == .medium ? .lightSummer : .softSummer)
+            }
+        }
+
+        // ===== PRIORITY 3: COOL NEUTRAL =====
+        if undertone == .coolNeutral {
+            if depth == "deep" {
+                return contrast == .high ? .deepWinter : .coolWinter
+            } else if depth == "medium" {
+                return contrast == .high ? .clearWinter : (contrast == .medium ? .coolSummer : .softSummer)
+            } else {
+                return contrast == .high ? .clearWinter : (contrast == .medium ? .lightSummer : .lightSpring)
+            }
+        }
+
+        // ===== PRIORITY 4: NEUTRAL =====
+        // Use relative contrast to decide cool vs warm direction
+        if undertone == .neutral {
+            if depth == "deep" {
+                return contrast == .high ? .deepAutumn : .softAutumn
+            } else if depth == "medium" {
+                // Key decision: does person lean cool or warm?
+                if relativeContrast < 0.08 {
+                    return .softSummer  // Low feature contrast → cooler
+                } else {
+                    return contrast == .high ? .warmAutumn : .softAutumn
+                }
+            } else {
+                return contrast == .high ? .clearSpring : .lightSpring
+            }
+        }
+
+        // Fallback (should rarely hit)
+        return .softAutumn
     }
 
     // MARK: - Confidence Calculation
