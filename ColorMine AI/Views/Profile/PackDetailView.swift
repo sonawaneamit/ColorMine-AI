@@ -120,10 +120,7 @@ struct ImagePackDetail: View {
     let image: UIImage
     let onShare: () -> Void
 
-    @State private var scale: CGFloat = 1.0
-    @State private var offset: CGSize = .zero
-    @GestureState private var magnifyBy: CGFloat = 1.0
-    @GestureState private var dragOffset: CGSize = .zero
+    @State private var showZoomView = false
 
     var body: some View {
         VStack(spacing: 20) {
@@ -133,37 +130,24 @@ struct ImagePackDetail: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
 
-            GeometryReader { geometry in
-                let imageWidth = geometry.size.width
-                let imageHeight = geometry.size.height
+            // Image with tap to zoom
+            Image(uiImage: image)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .cornerRadius(16)
+                .shadow(radius: 10)
+                .onTapGesture {
+                    showZoomView = true
+                }
 
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: imageWidth, height: imageHeight)
-                    .cornerRadius(16)
-                    .shadow(radius: 10)
-                    .scaleEffect(scale * magnifyBy)
-                    .offset(x: offset.width + dragOffset.width, y: offset.height + dragOffset.height)
-                    .gesture(makeMagnificationGesture())
-                    .simultaneousGesture(makeDragGesture(imageSize: CGSize(width: imageWidth, height: imageHeight)))
-                    .onTapGesture(count: 2) {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                            if scale > 1.0 {
-                                scale = 1.0
-                                offset = .zero
-                            } else {
-                                scale = 2.5
-                            }
-                        }
-                    }
+            // Zoom hint
+            HStack(spacing: 6) {
+                Image(systemName: "arrow.up.left.and.arrow.down.right")
+                    .font(.caption)
+                Text("Tap to zoom")
+                    .font(.caption)
             }
-            .frame(height: 600)
-            .clipped()
-
-            Text(scale > 1.0 ? "Pinch to zoom • Drag to pan • Double tap to reset" : "Pinch to zoom • Double tap to reset")
-                .font(.caption)
-                .foregroundColor(.secondary)
+            .foregroundColor(.secondary)
 
             // Share Button
             Button(action: onShare) {
@@ -185,6 +169,73 @@ struct ImagePackDetail: View {
                 .cornerRadius(16)
             }
             .padding(.horizontal)
+        }
+        .sheet(isPresented: $showZoomView) {
+            PackZoomImageView(image: image, title: title)
+        }
+    }
+}
+
+// MARK: - Pack Zoom Image View
+struct PackZoomImageView: View {
+    @Environment(\.dismiss) private var dismiss
+    let image: UIImage
+    let title: String
+
+    @State private var scale: CGFloat = 1.0
+    @State private var offset: CGSize = .zero
+    @GestureState private var magnifyBy: CGFloat = 1.0
+    @GestureState private var dragOffset: CGSize = .zero
+    @State private var showShareSheet = false
+
+    var body: some View {
+        NavigationStack {
+            GeometryReader { geometry in
+                ZStack {
+                    Color.black
+                        .ignoresSafeArea()
+
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .scaleEffect(scale * magnifyBy)
+                        .offset(x: offset.width + dragOffset.width, y: offset.height + dragOffset.height)
+                        .gesture(makeMagnificationGesture())
+                        .simultaneousGesture(makeDragGesture(imageSize: geometry.size))
+                        .onTapGesture(count: 2) {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                if scale > 1.0 {
+                                    scale = 1.0
+                                    offset = .zero
+                                } else {
+                                    scale = 2.5
+                                }
+                            }
+                        }
+                }
+            }
+            .ignoresSafeArea()
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: {
+                        showShareSheet = true
+                    }) {
+                        Image(systemName: "square.and.arrow.up")
+                            .foregroundColor(.white)
+                    }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .foregroundColor(.white)
+                }
+            }
+            .sheet(isPresented: $showShareSheet) {
+                ShareSheet(items: [ImageWatermarkUtility.shared.addWatermark(to: image)])
+            }
         }
     }
 

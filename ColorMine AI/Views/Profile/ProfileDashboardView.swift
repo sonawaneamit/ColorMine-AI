@@ -116,7 +116,7 @@ struct ProfileTab: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 30) {
-                // Header with Selfie and Analysis
+                // Header with Selfie and Analysis - Consistent with PaletteSelectionView
                 VStack(spacing: 16) {
                     // Selfie photo
                     if let selfieImage = profile.selfieImage {
@@ -139,9 +139,15 @@ struct ProfileTab: View {
                             .shadow(radius: 8)
                     }
 
+                    // "Your Season" title
+                    Text("Your Season")
+                        .font(.title2)
+                        .fontWeight(.bold)
+
                     // Season badge
                     Text(profile.season.rawValue)
-                        .font(.system(size: 36, weight: .bold))
+                        .font(.largeTitle)
+                        .fontWeight(.heavy)
                         .foregroundStyle(
                             LinearGradient(
                                 colors: [.purple, .pink],
@@ -150,12 +156,27 @@ struct ProfileTab: View {
                             )
                         )
 
-                    // Analysis summary
-                    HStack(spacing: 16) {
-                        InfoPill(icon: "circle.hexagongrid", text: profile.undertone.rawValue)
-                        InfoPill(icon: "circle.lefthalf.filled", text: profile.contrast.rawValue)
-                        InfoPill(icon: "checkmark.seal", text: "\(Int(profile.confidence * 100))%")
+                    // Analysis details in grid format - matching PaletteSelectionView
+                    HStack(spacing: 20) {
+                        ProfileAnalysisDetail(
+                            title: "Undertone",
+                            value: profile.undertone.rawValue,
+                            icon: "circle.hexagongrid"
+                        )
+                        ProfileAnalysisDetail(
+                            title: "Contrast",
+                            value: profile.contrast.rawValue,
+                            icon: "circle.lefthalf.filled"
+                        )
+                        ProfileAnalysisDetail(
+                            title: "Confidence",
+                            value: "\(Int(profile.confidence * 100))%",
+                            icon: "checkmark.seal"
+                        )
                     }
+                    .padding()
+                    .background(Color(.systemBackground))
+                    .cornerRadius(12)
 
                     // Focus color badge
                     if let focusColor = profile.focusColor {
@@ -173,6 +194,7 @@ struct ProfileTab: View {
                         .cornerRadius(20)
                     }
                 }
+                .padding(.horizontal)
                 .padding(.top, 20)
 
                 Divider()
@@ -316,23 +338,27 @@ struct ProfileTab: View {
     }
 }
 
-// MARK: - Info Pill
-struct InfoPill: View {
+// MARK: - Profile Analysis Detail
+private struct ProfileAnalysisDetail: View {
+    let title: String
+    let value: String
     let icon: String
-    let text: String
 
     var body: some View {
-        HStack(spacing: 6) {
+        VStack(spacing: 6) {
             Image(systemName: icon)
+                .font(.title3)
+                .foregroundColor(.purple)
+
+            Text(title)
                 .font(.caption)
-            Text(text)
-                .font(.caption)
-                .fontWeight(.medium)
+                .foregroundColor(.secondary)
+
+            Text(value)
+                .font(.subheadline)
+                .fontWeight(.semibold)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .background(Color(.systemBackground))
-        .cornerRadius(12)
+        .frame(maxWidth: .infinity)
     }
 }
 
