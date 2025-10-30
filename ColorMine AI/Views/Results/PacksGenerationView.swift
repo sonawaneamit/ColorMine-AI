@@ -17,12 +17,27 @@ struct PacksGenerationView: View {
     @State private var errorMessage: String?
     @State private var navigateToDashboard = false
 
-    private let steps = [
-        ("Texture Pack", "square.grid.3x3.fill"),
-        ("Jewelry Pack", "sparkles"),
-        ("Makeup Pack", "paintbrush.fill"),
-        ("Style Cards", "doc.text.fill")
-    ]
+    private var steps: [(String, String)] {
+        var packSteps: [(String, String)] = []
+
+        if profile.selectedPacks.contains("texture") {
+            packSteps.append(("Texture Pack", "square.grid.3x3.fill"))
+        }
+        if profile.selectedPacks.contains("jewelry") {
+            packSteps.append(("Jewelry Pack", "sparkles"))
+        }
+        if profile.selectedPacks.contains("makeup") {
+            packSteps.append(("Makeup Pack", "paintbrush.fill"))
+        }
+        if profile.selectedPacks.contains("hair") {
+            packSteps.append(("Hair Color Pack", "person.crop.circle.fill"))
+        }
+
+        // Always include style cards
+        packSteps.append(("Style Cards", "doc.text.fill"))
+
+        return packSteps
+    }
 
     var body: some View {
         ZStack {
@@ -140,14 +155,19 @@ struct PacksGenerationView: View {
 
         Task {
             var updatedProfile = profile
+            var stepIndex = 0
 
-            // Step 1: Generate Texture Pack (skip if already generated)
-            currentStep = 0
-            if !profile.packsGenerated.textures {
+            // Step 1: Generate Texture Pack (only if selected and not already generated)
+            if profile.selectedPacks.contains("texture") {
+                currentStep = stepIndex
+                stepIndex += 1
+
+                if !profile.packsGenerated.textures {
                 do {
                 let textureImage = try await GeminiService.shared.generateTexturePack(
                     selfieImage: selfieImage,
-                    focusColor: focusColor
+                    focusColor: focusColor,
+                    season: profile.season
                 )
                 let textureURL = ImageCacheManager.shared.saveAIImage(
                     textureImage,
@@ -160,18 +180,23 @@ struct PacksGenerationView: View {
                 } catch {
                     errorMessage = "Texture Pack: \(error.localizedDescription)"
                 }
-            } else {
-                print("✅ Texture Pack already generated, skipping")
+                } else {
+                    print("✅ Texture Pack already generated, skipping")
+                }
             }
 
-            // Step 2: Generate Jewelry Pack (skip if already generated)
-            currentStep = 1
-            if !profile.packsGenerated.jewelry {
+            // Step 2: Generate Jewelry Pack (only if selected and not already generated)
+            if profile.selectedPacks.contains("jewelry") {
+                currentStep = stepIndex
+                stepIndex += 1
+
+                if !profile.packsGenerated.jewelry {
                 do {
                 let jewelryImage = try await GeminiService.shared.generateJewelryPack(
                     selfieImage: selfieImage,
                     focusColor: focusColor,
-                    undertone: profile.undertone
+                    undertone: profile.undertone,
+                    season: profile.season
                 )
                 let jewelryURL = ImageCacheManager.shared.saveAIImage(
                     jewelryImage,
@@ -184,19 +209,24 @@ struct PacksGenerationView: View {
                 } catch {
                     errorMessage = "Jewelry Pack: \(error.localizedDescription)"
                 }
-            } else {
-                print("✅ Jewelry Pack already generated, skipping")
+                } else {
+                    print("✅ Jewelry Pack already generated, skipping")
+                }
             }
 
-            // Step 3: Generate Makeup Pack (skip if already generated)
-            currentStep = 2
-            if !profile.packsGenerated.makeup {
+            // Step 3: Generate Makeup Pack (only if selected and not already generated)
+            if profile.selectedPacks.contains("makeup") {
+                currentStep = stepIndex
+                stepIndex += 1
+
+                if !profile.packsGenerated.makeup {
                 do {
                 let makeupImage = try await GeminiService.shared.generateMakeupPack(
                     selfieImage: selfieImage,
                     focusColor: focusColor,
                     undertone: profile.undertone,
-                    contrast: profile.contrast
+                    contrast: profile.contrast,
+                    season: profile.season
                 )
                 let makeupURL = ImageCacheManager.shared.saveAIImage(
                     makeupImage,
@@ -209,12 +239,41 @@ struct PacksGenerationView: View {
                 } catch {
                     errorMessage = "Makeup Pack: \(error.localizedDescription)"
                 }
-            } else {
-                print("✅ Makeup Pack already generated, skipping")
+                } else {
+                    print("✅ Makeup Pack already generated, skipping")
+                }
             }
 
-            // Step 4: Generate Style Cards (text-based, no AI needed, skip if already generated)
-            currentStep = 3
+            // Step 4: Generate Hair Color Pack (only if selected and not already generated)
+            if profile.selectedPacks.contains("hair") {
+                currentStep = stepIndex
+                stepIndex += 1
+
+                if !profile.packsGenerated.hairColor {
+                do {
+                let hairImage = try await GeminiService.shared.generateHairColorPack(
+                    selfieImage: selfieImage,
+                    season: profile.season,
+                    undertone: profile.undertone
+                )
+                let hairURL = ImageCacheManager.shared.saveAIImage(
+                    hairImage,
+                    for: .hairColorPack,
+                    userID: profile.id
+                )
+                updatedProfile.hairColorPackImageURL = hairURL
+                updatedProfile.packsGenerated.hairColor = true
+                appState.saveProfile(updatedProfile)
+                } catch {
+                    errorMessage = "Hair Color Pack: \(error.localizedDescription)"
+                }
+                } else {
+                    print("✅ Hair Color Pack already generated, skipping")
+                }
+            }
+
+            // Step 5: Generate Style Cards (text-based, no AI needed, skip if already generated)
+            currentStep = stepIndex
             if !profile.packsGenerated.contrastCard || !profile.packsGenerated.neutralsMetalsCard {
                 updatedProfile.contrastCard = ContrastCard.generate(for: profile.contrast)
                 updatedProfile.neutralsMetalsCard = NeutralsMetalsCard.generate(for: profile.undertone, season: profile.season)

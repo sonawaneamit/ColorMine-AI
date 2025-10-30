@@ -192,8 +192,9 @@ struct ProfileTab: View {
                         }
                     }
 
-                    // Texture Pack
-                    if let textureURL = profile.texturePackImageURL,
+                    // Texture Pack (only if selected)
+                    if profile.selectedPacks.contains("texture"),
+                       let textureURL = profile.texturePackImageURL,
                        let uiImage = UIImage(contentsOfFile: textureURL.path) {
                         PackCard(
                             title: "Texture Pack",
@@ -205,8 +206,9 @@ struct ProfileTab: View {
                         }
                     }
 
-                    // Jewelry Pack
-                    if let jewelryURL = profile.jewelryPackImageURL,
+                    // Jewelry Pack (only if selected)
+                    if profile.selectedPacks.contains("jewelry"),
+                       let jewelryURL = profile.jewelryPackImageURL,
                        let uiImage = UIImage(contentsOfFile: jewelryURL.path) {
                         PackCard(
                             title: "Jewelry Pack",
@@ -218,8 +220,9 @@ struct ProfileTab: View {
                         }
                     }
 
-                    // Makeup Pack
-                    if let makeupURL = profile.makeupPackImageURL,
+                    // Makeup Pack (only if selected)
+                    if profile.selectedPacks.contains("makeup"),
+                       let makeupURL = profile.makeupPackImageURL,
                        let uiImage = UIImage(contentsOfFile: makeupURL.path) {
                         PackCard(
                             title: "Makeup Pack",
@@ -228,6 +231,20 @@ struct ProfileTab: View {
                             icon: "paintbrush.fill"
                         ) {
                             selectedPack = .makeupPack
+                        }
+                    }
+
+                    // Hair Color Pack (only if selected)
+                    if profile.selectedPacks.contains("hair"),
+                       let hairURL = profile.hairColorPackImageURL,
+                       let uiImage = UIImage(contentsOfFile: hairURL.path) {
+                        PackCard(
+                            title: "Hair Color Pack",
+                            subtitle: "Hair colors for your season",
+                            image: uiImage,
+                            icon: "person.crop.circle.fill"
+                        ) {
+                            selectedPack = .hairColorPack
                         }
                     }
                 }
@@ -412,6 +429,7 @@ enum PackDetailType: Identifiable {
     case texturePack
     case jewelryPack
     case makeupPack
+    case hairColorPack
     case contrastCard
     case neutralsMetalsCard
 
@@ -421,6 +439,7 @@ enum PackDetailType: Identifiable {
         case .texturePack: return "texture"
         case .jewelryPack: return "jewelry"
         case .makeupPack: return "makeup"
+        case .hairColorPack: return "hair"
         case .contrastCard: return "contrast"
         case .neutralsMetalsCard: return "neutrals"
         }

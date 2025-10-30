@@ -69,9 +69,15 @@ struct FocusColorView: View {
 
                     // What's Next Section
                     VStack(spacing: 20) {
-                        Text("Generate Your Complete Style Guide")
+                        Text("What's Next?")
                             .font(.title3)
                             .fontWeight(.semibold)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+
+                        Text("Choose which personalized style guides you'd like to create")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
 
@@ -96,6 +102,12 @@ struct FocusColorView: View {
                             )
 
                             PackFeatureCard(
+                                icon: "person.crop.circle.fill",
+                                title: "Hair Color Pack",
+                                description: "Explore hair colors for your season"
+                            )
+
+                            PackFeatureCard(
                                 icon: "doc.text.fill",
                                 title: "Style Cards",
                                 description: "Get personalized contrast and neutral color guides"
@@ -104,7 +116,7 @@ struct FocusColorView: View {
                         .padding(.horizontal)
                     }
 
-                    // Generate Button
+                    // Continue Button
                     Button(action: {
                         startGeneration()
                     }) {
@@ -112,11 +124,11 @@ struct FocusColorView: View {
                             if isGenerating {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                Text("Generating...")
+                                Text("Loading...")
                             } else {
-                                Image(systemName: "wand.and.stars")
+                                Image(systemName: "checkmark.circle.fill")
                                     .font(.title3)
-                                Text("Generate My Style Guide")
+                                Text("Choose My Packs")
                                     .font(.headline)
                             }
                         }
@@ -143,7 +155,10 @@ struct FocusColorView: View {
         .navigationTitle("Focus Color")
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(isPresented: $navigateToPacks) {
-            PacksGenerationView(profile: profile)
+            if let updatedProfile = appState.currentProfile {
+                PackSelectionView(profile: updatedProfile)
+                    .environmentObject(appState)
+            }
         }
     }
 

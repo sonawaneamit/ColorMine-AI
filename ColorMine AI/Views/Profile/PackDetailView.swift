@@ -14,6 +14,10 @@ struct PackDetailView: View {
 
     @State private var scale: CGFloat = 1.0
     @State private var lastScale: CGFloat = 1.0
+    @State private var showShareSheet = false
+    @State private var imageToShare: UIImage?
+    @State private var showSaveAlert = false
+    @State private var saveAlertMessage = ""
 
     var body: some View {
         NavigationStack {
@@ -31,7 +35,8 @@ struct PackDetailView: View {
                                 ImagePackDetail(
                                     title: "Drapes Grid",
                                     description: "See yourself wearing your perfect colors",
-                                    image: image
+                                    image: image,
+                                    onShare: { shareImage(image) }
                                 )
                             }
 
@@ -41,7 +46,8 @@ struct PackDetailView: View {
                                 ImagePackDetail(
                                     title: "Texture Pack",
                                     description: "Fabric patterns that enhance your natural coloring",
-                                    image: image
+                                    image: image,
+                                    onShare: { shareImage(image) }
                                 )
                             }
 
@@ -51,7 +57,8 @@ struct PackDetailView: View {
                                 ImagePackDetail(
                                     title: "Jewelry Pack",
                                     description: "Metals and gemstones that illuminate your features",
-                                    image: image
+                                    image: image,
+                                    onShare: { shareImage(image) }
                                 )
                             }
 
@@ -60,7 +67,19 @@ struct PackDetailView: View {
                                let image = UIImage(contentsOfFile: url.path) {
                                 MakeupPackDetail(
                                     profile: profile,
-                                    image: image
+                                    image: image,
+                                    onShare: { shareImage(image) }
+                                )
+                            }
+
+                        case .hairColorPack:
+                            if let url = profile.hairColorPackImageURL,
+                               let image = UIImage(contentsOfFile: url.path) {
+                                ImagePackDetail(
+                                    title: "Hair Color Pack",
+                                    description: "Hair colors that complement your season",
+                                    image: image,
+                                    onShare: { shareImage(image) }
                                 )
                             }
 
@@ -87,7 +106,22 @@ struct PackDetailView: View {
                     }
                 }
             }
+            .sheet(isPresented: $showShareSheet) {
+                if let image = imageToShare {
+                    ShareSheet(items: [ImageWatermarkUtility.shared.addWatermark(to: image)])
+                }
+            }
+            .alert("Image Saved", isPresented: $showSaveAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(saveAlertMessage)
+            }
         }
+    }
+
+    private func shareImage(_ image: UIImage) {
+        imageToShare = image
+        showShareSheet = true
     }
 }
 
@@ -96,11 +130,12 @@ struct ImagePackDetail: View {
     let title: String
     let description: String
     let image: UIImage
+    let onShare: () -> Void
 
     @State private var scale: CGFloat = 1.0
-    @State private var lastScale: CGFloat = 1.0
     @State private var offset: CGSize = .zero
-    @State private var lastOffset: CGSize = .zero
+    @GestureState private var magnifyBy: CGFloat = 1.0
+    @GestureState private var dragOffset: CGSize = .zero
 
     var body: some View {
         VStack(spacing: 20) {
@@ -111,255 +146,112 @@ struct ImagePackDetail: View {
                 .padding(.horizontal)
 
             GeometryReader { geometry in
+                let imageWidth = geometry.size.width
+                let imageHeight = geometry.size.height
+
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .frame(width: imageWidth, height: imageHeight)
                     .cornerRadius(16)
                     .shadow(radius: 10)
-                    .scaleEffect(scale)
-                    .offset(offset)
-                    .gesture(
-                        SimultaneousGesture(
-                            MagnificationGesture()
-                                .onChanged { value in
-                                    scale = lastScale * value
-                                }
-                                .onEnded { _ in
-                                    lastScale = scale
-                                    // Reset to minimum scale of 1.0
-                                    if scale < 1.0 {
-                                        withAnimation(.spring()) {
-                                            scale = 1.0
-                                            lastScale = 1.0
-                                            offset = .zero
-                                            lastOffset = .zero
-                                        }
-                                    }
-                                },
-                            DragGesture()
-                                .onChanged { value in
-                                    // Only allow dragging when zoomed in
-                                    if scale > 1.0 {
-                                        offset = CGSize(
-                                            width: lastOffset.width + value.translation.width,
-                                            height: lastOffset.height + value.translation.height
-                                        )
-                                    }
-                                }
-                                .onEnded { _ in
-                                    lastOffset = offset
-                                }
-                        )
-                    )
+                    .scaleEffect(scale * magnifyBy)
+                    .offset(x: offset.width + dragOffset.width, y: offset.height + dragOffset.height)
+                    .gesture(makeMagnificationGesture())
+                    .simultaneousGesture(makeDragGesture(imageSize: CGSize(width: imageWidth, height: imageHeight)))
                     .onTapGesture(count: 2) {
-                        // Double tap to reset zoom
-                        withAnimation(.spring()) {
-                            scale = 1.0
-                            lastScale = 1.0
-                            offset = .zero
-                            lastOffset = .zero
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            if scale > 1.0 {
+                                scale = 1.0
+                                offset = .zero
+                            } else {
+                                scale = 2.5
+                            }
                         }
                     }
             }
-            .frame(height: 600) // Increased height for more viewing space
+            .frame(height: 600)
+            .clipped()
 
             Text(scale > 1.0 ? "Pinch to zoom • Drag to pan • Double tap to reset" : "Pinch to zoom • Double tap to reset")
                 .font(.caption)
                 .foregroundColor(.secondary)
+
+            // Share Button
+            Button(action: onShare) {
+                HStack {
+                    Image(systemName: "square.and.arrow.up")
+                    Text("Share or Save")
+                }
+                .font(.headline)
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(
+                    LinearGradient(
+                        colors: [.purple, .pink],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .cornerRadius(16)
+            }
+            .padding(.horizontal)
         }
+    }
+
+    private func makeMagnificationGesture() -> some Gesture {
+        MagnificationGesture()
+            .updating($magnifyBy) { value, gestureState, _ in
+                gestureState = value
+            }
+            .onEnded { value in
+                let newScale = scale * value
+                scale = min(max(newScale, 1.0), 5.0)
+
+                if scale == 1.0 {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        offset = .zero
+                    }
+                }
+            }
+    }
+
+    private func makeDragGesture(imageSize: CGSize) -> some Gesture {
+        DragGesture()
+            .updating($dragOffset) { value, gestureState, _ in
+                if scale > 1.0 {
+                    gestureState = value.translation
+                }
+            }
+            .onEnded { value in
+                if scale > 1.0 {
+                    let maxOffsetX = (imageSize.width * (scale - 1)) / 2
+                    let maxOffsetY = (imageSize.height * (scale - 1)) / 2
+
+                    let newOffsetX = offset.width + value.translation.width
+                    let newOffsetY = offset.height + value.translation.height
+
+                    offset.width = min(max(newOffsetX, -maxOffsetX), maxOffsetX)
+                    offset.height = min(max(newOffsetY, -maxOffsetY), maxOffsetY)
+                }
+            }
     }
 }
 
 // MARK: - Makeup Pack Detail
 struct MakeupPackDetail: View {
-    @EnvironmentObject var appState: AppState
     let profile: UserProfile
     let image: UIImage
-
-    @State private var eyeshadowIntensity: Double = 50
-    @State private var eyelinerIntensity: Double = 50
-    @State private var blushIntensity: Double = 50
-    @State private var lipstickIntensity: Double = 50
-    @State private var isRegenerating = false
-    @State private var scale: CGFloat = 1.0
-    @State private var lastScale: CGFloat = 1.0
-    @State private var offset: CGSize = .zero
-    @State private var lastOffset: CGSize = .zero
+    let onShare: () -> Void
 
     var body: some View {
-        VStack(spacing: 20) {
-            Text("Your ideal makeup palette based on your undertone and contrast")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-
-            // Image with zoom
-            GeometryReader { geometry in
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .cornerRadius(16)
-                    .shadow(radius: 10)
-                    .scaleEffect(scale)
-                    .offset(offset)
-                    .gesture(
-                        SimultaneousGesture(
-                            MagnificationGesture()
-                                .onChanged { value in
-                                    scale = lastScale * value
-                                }
-                                .onEnded { _ in
-                                    lastScale = scale
-                                    if scale < 1.0 {
-                                        withAnimation(.spring()) {
-                                            scale = 1.0
-                                            lastScale = 1.0
-                                            offset = .zero
-                                            lastOffset = .zero
-                                        }
-                                    }
-                                },
-                            DragGesture()
-                                .onChanged { value in
-                                    if scale > 1.0 {
-                                        offset = CGSize(
-                                            width: lastOffset.width + value.translation.width,
-                                            height: lastOffset.height + value.translation.height
-                                        )
-                                    }
-                                }
-                                .onEnded { _ in
-                                    lastOffset = offset
-                                }
-                        )
-                    )
-                    .onTapGesture(count: 2) {
-                        withAnimation(.spring()) {
-                            scale = 1.0
-                            lastScale = 1.0
-                            offset = .zero
-                            lastOffset = .zero
-                        }
-                    }
-            }
-            .frame(height: 500) // Increased height for better viewing
-
-            Text(scale > 1.0 ? "Pinch to zoom • Drag to pan • Double tap to reset" : "Pinch to zoom • Double tap to reset")
-                .font(.caption)
-                .foregroundColor(.secondary)
-
-            // Intensity Sliders
-            VStack(spacing: 20) {
-                Text("Adjust Makeup Intensity")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal)
-
-                MakeupSlider(
-                    label: "Eyeshadow",
-                    value: $eyeshadowIntensity,
-                    icon: "sparkles"
-                )
-
-                MakeupSlider(
-                    label: "Eyeliner",
-                    value: $eyelinerIntensity,
-                    icon: "eye"
-                )
-
-                MakeupSlider(
-                    label: "Blush",
-                    value: $blushIntensity,
-                    icon: "heart.fill"
-                )
-
-                MakeupSlider(
-                    label: "Lipstick",
-                    value: $lipstickIntensity,
-                    icon: "mouth"
-                )
-            }
-            .padding()
-            .background(Color(.systemBackground))
-            .cornerRadius(16)
-            .padding(.horizontal)
-
-            // Regenerate Button
-            if isRegenerating {
-                VStack(spacing: 12) {
-                    ProgressView()
-                        .scaleEffect(1.2)
-                    Text("Regenerating with your settings...")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
-                .padding()
-            } else {
-                Button(action: {
-                    regenerateMakeup()
-                }) {
-                    HStack {
-                        Image(systemName: "arrow.clockwise")
-                        Text("Regenerate Makeup")
-                    }
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(
-                        LinearGradient(
-                            colors: [.purple, .pink],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .cornerRadius(16)
-                }
-                .padding(.horizontal)
-            }
-
-            Spacer().frame(height: 20)
-        }
-    }
-
-    private func regenerateMakeup() {
-        guard let selfieImage = profile.selfieImage,
-              let focusColor = profile.focusColor else { return }
-
-        isRegenerating = true
-
-        Task {
-            do {
-                let makeupImage = try await GeminiService.shared.generateMakeupPack(
-                    selfieImage: selfieImage,
-                    focusColor: focusColor,
-                    undertone: profile.undertone,
-                    contrast: profile.contrast,
-                    eyeshadowIntensity: eyeshadowIntensity,
-                    eyelinerIntensity: eyelinerIntensity,
-                    blushIntensity: blushIntensity,
-                    lipstickIntensity: lipstickIntensity
-                )
-
-                let makeupURL = ImageCacheManager.shared.saveAIImage(
-                    makeupImage,
-                    for: .makeupPack,
-                    userID: profile.id
-                )
-
-                var updatedProfile = profile
-                updatedProfile.makeupPackImageURL = makeupURL
-                appState.saveProfile(updatedProfile)
-
-                isRegenerating = false
-            } catch {
-                print("❌ Error regenerating makeup: \(error)")
-                isRegenerating = false
-            }
-        }
+        ImagePackDetail(
+            title: "Makeup Pack",
+            description: "Makeup looks tailored to your season and undertone",
+            image: image,
+            onShare: onShare
+        )
     }
 }
 
@@ -644,10 +536,26 @@ extension PackDetailType {
         case .texturePack: return "Texture Pack"
         case .jewelryPack: return "Jewelry Pack"
         case .makeupPack: return "Makeup Pack"
+        case .hairColorPack: return "Hair Color Pack"
         case .contrastCard: return "Contrast Guide"
         case .neutralsMetalsCard: return "Neutrals & Metals"
         }
     }
+}
+
+// MARK: - Share Sheet
+struct ShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        let controller = UIActivityViewController(
+            activityItems: items,
+            applicationActivities: nil
+        )
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 #Preview {

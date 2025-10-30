@@ -12,20 +12,22 @@ struct PacksGenerationStatus: Codable {
     var textures: Bool = false
     var jewelry: Bool = false
     var makeup: Bool = false
+    var hairColor: Bool = false
     var contrastCard: Bool = false
     var neutralsMetalsCard: Bool = false
 
     var allGenerated: Bool {
-        drapes && textures && jewelry && makeup && contrastCard && neutralsMetalsCard
+        drapes && textures && jewelry && makeup && hairColor && contrastCard && neutralsMetalsCard
     }
 
     var percentComplete: Double {
-        let total = 6.0
+        let total = 7.0
         var completed = 0.0
         if drapes { completed += 1 }
         if textures { completed += 1 }
         if jewelry { completed += 1 }
         if makeup { completed += 1 }
+        if hairColor { completed += 1 }
         if contrastCard { completed += 1 }
         if neutralsMetalsCard { completed += 1 }
         return (completed / total) * 100
@@ -39,4 +41,5 @@ enum PackType: String {
     case texturePack = "Texture Pack"
     case jewelryPack = "Jewelry Pack"
     case makeupPack = "Makeup Pack"
+    case hairColorPack = "Hair Color Pack"
 }

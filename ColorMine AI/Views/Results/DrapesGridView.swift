@@ -14,6 +14,7 @@ struct DrapesGridView: View {
     @State private var selectedColor: ColorSwatch?
     @State private var showZoomView = false
     @State private var navigateToFocus = false
+    @State private var showShareSheet = false
 
     var body: some View {
         ZStack {
@@ -57,6 +58,29 @@ struct DrapesGridView: View {
                                     .font(.caption)
                             }
                             .foregroundColor(.secondary)
+
+                            // Share Button
+                            Button(action: {
+                                showShareSheet = true
+                            }) {
+                                HStack {
+                                    Image(systemName: "square.and.arrow.up")
+                                    Text("Share or Save")
+                                }
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(
+                                    LinearGradient(
+                                        colors: [.purple, .pink],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .cornerRadius(16)
+                            }
+                            .padding(.horizontal)
                         }
 
                     } else {
@@ -140,9 +164,16 @@ struct DrapesGridView: View {
                 ZoomImageView(image: uiImage)
             }
         }
+        .sheet(isPresented: $showShareSheet) {
+            if let imageURL = profile.drapesGridImageURL,
+               let uiImage = UIImage(contentsOfFile: imageURL.path) {
+                ShareSheet(items: [ImageWatermarkUtility.shared.addWatermark(to: uiImage)])
+            }
+        }
         .navigationDestination(isPresented: $navigateToFocus) {
             if let updatedProfile = appState.currentProfile {
                 FocusColorView(profile: updatedProfile)
+                    .environmentObject(appState)
             }
         }
     }
@@ -208,28 +239,40 @@ struct ZoomImageView: View {
     let image: UIImage
 
     @State private var scale: CGFloat = 1.0
-    @State private var lastScale: CGFloat = 1.0
+    @State private var offset: CGSize = .zero
+    @GestureState private var magnifyBy: CGFloat = 1.0
+    @GestureState private var dragOffset: CGSize = .zero
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                Color.black
-                    .ignoresSafeArea()
+            GeometryReader { geometry in
+                let imageWidth = geometry.size.width
+                let imageHeight = geometry.size.height
 
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFit()
-                    .scaleEffect(scale)
-                    .gesture(
-                        MagnificationGesture()
-                            .onChanged { value in
-                                scale = lastScale * value
+                ZStack {
+                    Color.black
+                        .ignoresSafeArea()
+
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .scaleEffect(scale * magnifyBy)
+                        .offset(x: offset.width + dragOffset.width, y: offset.height + dragOffset.height)
+                        .gesture(makeMagnificationGesture())
+                        .simultaneousGesture(makeDragGesture(imageSize: CGSize(width: imageWidth, height: imageHeight)))
+                        .onTapGesture(count: 2) {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                if scale > 1.0 {
+                                    scale = 1.0
+                                    offset = .zero
+                                } else {
+                                    scale = 2.5
+                                }
                             }
-                            .onEnded { _ in
-                                lastScale = scale
-                            }
-                    )
+                        }
+                }
             }
+            .ignoresSafeArea()
             .navigationTitle("Drapes Grid")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -241,6 +284,44 @@ struct ZoomImageView: View {
                 }
             }
         }
+    }
+
+    private func makeMagnificationGesture() -> some Gesture {
+        MagnificationGesture()
+            .updating($magnifyBy) { value, gestureState, _ in
+                gestureState = value
+            }
+            .onEnded { value in
+                let newScale = scale * value
+                scale = min(max(newScale, 1.0), 5.0)
+
+                if scale == 1.0 {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        offset = .zero
+                    }
+                }
+            }
+    }
+
+    private func makeDragGesture(imageSize: CGSize) -> some Gesture {
+        DragGesture()
+            .updating($dragOffset) { value, gestureState, _ in
+                if scale > 1.0 {
+                    gestureState = value.translation
+                }
+            }
+            .onEnded { value in
+                if scale > 1.0 {
+                    let maxOffsetX = (imageSize.width * (scale - 1)) / 2
+                    let maxOffsetY = (imageSize.height * (scale - 1)) / 2
+
+                    let newOffsetX = offset.width + value.translation.width
+                    let newOffsetY = offset.height + value.translation.height
+
+                    offset.width = min(max(newOffsetX, -maxOffsetX), maxOffsetX)
+                    offset.height = min(max(newOffsetY, -maxOffsetY), maxOffsetY)
+                }
+            }
     }
 }
 

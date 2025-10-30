@@ -25,12 +25,15 @@ struct UserProfile: Codable, Identifiable {
 
     // AI Generation Status
     var packsGenerated: PacksGenerationStatus = PacksGenerationStatus()
+    var selectedPacks: Set<String> = [] // User must choose packs
+    var hasChosenPacks: Bool = false // Track if user has been to pack selection screen
 
     // Cached AI Image URLs (local file paths)
     var drapesGridImageURL: URL?
     var texturePackImageURL: URL?
     var jewelryPackImageURL: URL?
     var makeupPackImageURL: URL?
+    var hairColorPackImageURL: URL?
 
     // Text Cards
     var contrastCard: ContrastCard?

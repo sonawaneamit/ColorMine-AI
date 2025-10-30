@@ -30,7 +30,7 @@ struct PaletteSelectionView: View {
     ]
 
     private var canGenerate: Bool {
-        selectedColors.count >= 3 && selectedColors.count <= 8
+        selectedColors.count >= 3 && selectedColors.count <= 12
     }
 
     var body: some View {
@@ -154,16 +154,16 @@ struct PaletteSelectionView: View {
                             .font(.title3)
                             .fontWeight(.semibold)
 
-                        Text("Choose 3-8 colors that resonate with you")
+                        Text("Choose 3-12 colors that resonate with you")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
 
                         // Selection counter
-                        HStack(spacing: 8) {
-                            ForEach(1...8, id: \.self) { index in
+                        HStack(spacing: 6) {
+                            ForEach(1...12, id: \.self) { index in
                                 Circle()
                                     .fill(index <= selectedColors.count ? Color.purple : Color.gray.opacity(0.3))
-                                    .frame(width: 12, height: 12)
+                                    .frame(width: 10, height: 10)
                             }
                         }
                         .padding(.top, 4)
@@ -256,6 +256,7 @@ struct PaletteSelectionView: View {
         .navigationDestination(isPresented: $navigateToDrapes) {
             if let updatedProfile = appState.currentProfile {
                 DrapesGridView(profile: updatedProfile)
+                    .environmentObject(appState)
             }
         }
         .confirmationDialog("Select Your Season", isPresented: $showSeasonPicker) {
@@ -283,7 +284,7 @@ struct PaletteSelectionView: View {
         if selectedColors.contains(swatch) {
             selectedColors.remove(swatch)
         } else {
-            if selectedColors.count < 8 {
+            if selectedColors.count < 12 {
                 selectedColors.insert(swatch)
             }
         }
@@ -322,6 +323,7 @@ struct PaletteSelectionView: View {
                 var updatedProfile = profile
                 updatedProfile.favoriteColors = colorsArray
                 updatedProfile.drapesGridImageURL = cachedURL
+                updatedProfile.packsGenerated.drapes = true
 
                 appState.saveProfile(updatedProfile)
 

@@ -47,11 +47,14 @@ struct RootView: View {
                 } else if profile.focusColor == nil {
                     // Step 3: Pick focus color from drapes
                     DrapesGridView(profile: profile)
+                } else if !profile.hasChosenPacks {
+                    // Step 4: Choose which packs to generate
+                    FocusColorView(profile: profile)
                 } else if !profile.packsGenerated.allGenerated {
-                    // Step 4: Generate all AI packs
+                    // Step 5: Generate selected AI packs
                     PacksGenerationView(profile: profile)
                 } else {
-                    // Step 5: Profile complete - show dashboard
+                    // Step 6: Profile complete - show dashboard
                     ProfileDashboardView(profile: profile)
                 }
             } else {

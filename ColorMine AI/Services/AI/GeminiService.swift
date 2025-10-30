@@ -42,9 +42,10 @@ class GeminiService {
     // MARK: - Generate Texture Pack
     func generateTexturePack(
         selfieImage: UIImage,
-        focusColor: ColorSwatch
+        focusColor: ColorSwatch,
+        season: ColorSeason
     ) async throws -> UIImage {
-        let prompt = PromptEngine.texturePackPrompt(color: focusColor)
+        let prompt = PromptEngine.texturePackPrompt(color: focusColor, season: season)
         return try await generateImage(
             prompt: prompt,
             selfieImage: selfieImage,
@@ -56,9 +57,10 @@ class GeminiService {
     func generateJewelryPack(
         selfieImage: UIImage,
         focusColor: ColorSwatch,
-        undertone: Undertone
+        undertone: Undertone,
+        season: ColorSeason
     ) async throws -> UIImage {
-        let prompt = PromptEngine.jewelryPackPrompt(color: focusColor, undertone: undertone)
+        let prompt = PromptEngine.jewelryPackPrompt(color: focusColor, undertone: undertone, season: season)
         return try await generateImage(
             prompt: prompt,
             selfieImage: selfieImage,
@@ -69,27 +71,35 @@ class GeminiService {
     // MARK: - Generate Makeup Pack
     func generateMakeupPack(
         selfieImage: UIImage,
-        focusColor: ColorSwatch,
+        focusColor: ColorSwatch?,
         undertone: Undertone,
         contrast: Contrast,
-        eyeshadowIntensity: Double = 50,
-        eyelinerIntensity: Double = 50,
-        blushIntensity: Double = 50,
-        lipstickIntensity: Double = 50
+        season: ColorSeason
     ) async throws -> UIImage {
         let prompt = PromptEngine.makeupPackPrompt(
             color: focusColor,
             undertone: undertone,
             contrast: contrast,
-            eyeshadowIntensity: eyeshadowIntensity,
-            eyelinerIntensity: eyelinerIntensity,
-            blushIntensity: blushIntensity,
-            lipstickIntensity: lipstickIntensity
+            season: season
         )
         return try await generateImage(
             prompt: prompt,
             selfieImage: selfieImage,
             packType: .makeupPack
+        )
+    }
+
+    // MARK: - Generate Hair Color Pack
+    func generateHairColorPack(
+        selfieImage: UIImage,
+        season: ColorSeason,
+        undertone: Undertone
+    ) async throws -> UIImage {
+        let prompt = PromptEngine.hairColorPackPrompt(season: season, undertone: undertone)
+        return try await generateImage(
+            prompt: prompt,
+            selfieImage: selfieImage,
+            packType: .hairColorPack
         )
     }
 
