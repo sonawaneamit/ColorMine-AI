@@ -34,6 +34,12 @@ class PromptEngine {
         return """
         Create a professional personal color analysis draping grid showing the same person wearing simple, solid-colored tops in each of these colors: \(colorList)
 
+        🚨 CRITICAL - PRESERVE ORIGINAL APPEARANCE:
+        - The person's skin tone, complexion, and ethnicity MUST remain EXACTLY as shown in the reference photo
+        - DO NOT alter, lighten, darken, or change the skin color in any way
+        - Maintain the person's natural features, face shape, and appearance
+        - ONLY change the clothing color - everything else stays identical
+
         REQUIREMENTS:
         - Show ONLY the person's upper body (neck to waist)
         - Each image should show the person in the EXACT same pose, lighting, and expression
@@ -58,6 +64,12 @@ class PromptEngine {
 
         return """
         Create a professional texture options grid showing \(color.name) (#\(color.hex)) in 6 different fabric textures suited for \(season.rawValue) coloring.
+
+        🚨 CRITICAL - PRESERVE ORIGINAL APPEARANCE:
+        - The person's skin tone, complexion, and ethnicity MUST remain EXACTLY as shown in the reference photo
+        - DO NOT alter, lighten, darken, or change the skin color in any way
+        - Maintain the person's natural features, face shape, and appearance
+        - ONLY change the fabric texture - everything else stays identical
 
         CRITICAL GRID FORMAT:
         - Create EXACTLY a 2×3 grid (2 columns, 3 rows = 6 total tiles)
@@ -90,6 +102,12 @@ class PromptEngine {
 
         return """
         Create a professional jewelry options grid showing the same person wearing \(color.name) (#\(color.hex)) with 6 different metal finishes.
+
+        🚨 CRITICAL - PRESERVE ORIGINAL APPEARANCE:
+        - The person's skin tone, complexion, and ethnicity MUST remain EXACTLY as shown in the reference photo
+        - DO NOT alter, lighten, darken, or change the skin color in any way
+        - Maintain the person's natural features, face shape, and appearance
+        - ONLY change the jewelry/metal - everything else stays identical
 
         CRITICAL GRID FORMAT:
         - Create EXACTLY a 2×3 grid (2 columns, 3 rows = 6 total tiles)
@@ -130,6 +148,12 @@ class PromptEngine {
 
         return """
         Create a professional makeup options grid showing the same person with 6 different complete makeup looks suited for \(season.rawValue) coloring.
+
+        🚨 CRITICAL - PRESERVE ORIGINAL APPEARANCE:
+        - The person's skin tone, complexion, and ethnicity MUST remain EXACTLY as shown in the reference photo
+        - DO NOT alter, lighten, darken, or change the skin color in any way
+        - Maintain the person's natural features, face shape, and appearance
+        - ONLY change the makeup application - the base skin tone stays identical
 
         CRITICAL GRID FORMAT:
         - Create EXACTLY a 2×3 grid (2 columns, 3 rows = 6 total tiles)
@@ -194,6 +218,13 @@ class PromptEngine {
 
         return """
         Create a professional hair color options grid showing 6 different hair colors that complement \(season.rawValue) coloring with \(undertone.rawValue) undertones.
+
+        🚨 CRITICAL - PRESERVE ORIGINAL APPEARANCE:
+        - The person's skin tone, complexion, and ethnicity MUST remain EXACTLY as shown in the reference photo
+        - DO NOT alter, lighten, darken, or change the skin color in any way
+        - Maintain the person's natural facial features, face shape, and appearance
+        - ONLY change the hair color - the person's skin tone and features stay completely identical
+        - This is essential for respectful, accurate representation
 
         CRITICAL GRID FORMAT:
         - Create EXACTLY a 2×3 grid (2 columns, 3 rows = 6 total tiles)
