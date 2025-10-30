@@ -8,27 +8,23 @@
 import SwiftUI
 
 struct PackDetailView: View {
-    @Environment(\.dismiss) private var dismiss
     let profile: UserProfile
     let packType: PackDetailType
 
-    @State private var scale: CGFloat = 1.0
-    @State private var lastScale: CGFloat = 1.0
     @State private var showShareSheet = false
     @State private var imageToShare: UIImage?
     @State private var showSaveAlert = false
     @State private var saveAlertMessage = ""
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color(.systemGroupedBackground)
-                    .ignoresSafeArea()
+        ZStack {
+            Color(.systemGroupedBackground)
+                .ignoresSafeArea()
 
-                ScrollView {
-                    VStack(spacing: 20) {
-                        // Show appropriate content based on pack type
-                        switch packType {
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Show appropriate content based on pack type
+                    switch packType {
                         case .drapesGrid:
                             if let url = profile.drapesGridImageURL,
                                let image = UIImage(contentsOfFile: url.path) {
@@ -97,25 +93,18 @@ struct PackDetailView: View {
                     .padding()
                 }
             }
-            .navigationTitle(packType.displayTitle)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
+        }
+        .navigationTitle(packType.displayTitle)
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showShareSheet) {
+            if let image = imageToShare {
+                ShareSheet(items: [ImageWatermarkUtility.shared.addWatermark(to: image)])
             }
-            .sheet(isPresented: $showShareSheet) {
-                if let image = imageToShare {
-                    ShareSheet(items: [ImageWatermarkUtility.shared.addWatermark(to: image)])
-                }
-            }
-            .alert("Image Saved", isPresented: $showSaveAlert) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(saveAlertMessage)
-            }
+        }
+        .alert("Image Saved", isPresented: $showSaveAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(saveAlertMessage)
         }
     }
 
