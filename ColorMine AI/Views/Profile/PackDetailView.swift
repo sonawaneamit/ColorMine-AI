@@ -88,10 +88,9 @@ struct PackDetailView: View {
                             if let card = profile.neutralsMetalsCard {
                                 NeutralsMetalsCardDetail(card: card)
                             }
-                        }
                     }
-                    .padding()
                 }
+                .padding()
             }
         }
         .navigationTitle(packType.displayTitle)
