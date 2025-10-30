@@ -19,6 +19,8 @@ struct TryOnBrowserView: View {
     @State private var showSaveConfirmation = false
     @State private var isCapturing = false
     @State private var currentURL: URL?
+    @State private var isLoading = true
+    @State private var estimatedProgress: Double = 0
 
     init(store: Store) {
         self.store = store
@@ -63,9 +65,22 @@ struct TryOnBrowserView: View {
                 WebView(
                     url: initialURL,
                     webView: $webView,
-                    currentURL: $currentURL
+                    currentURL: $currentURL,
+                    isLoading: $isLoading,
+                    estimatedProgress: $estimatedProgress
                 )
                 .ignoresSafeArea()
+
+                // Loading indicator overlay
+                if isLoading {
+                    VStack {
+                        ProgressView(value: estimatedProgress, total: 1.0)
+                            .progressViewStyle(.linear)
+                            .tint(.purple)
+                        Spacer()
+                    }
+                    .background(Color.black.opacity(0.1))
+                }
 
                 // Floating "Add to Try-On" Button
                 VStack {
@@ -211,6 +226,8 @@ struct WebView: UIViewRepresentable {
     let url: URL
     @Binding var webView: WKWebView?
     @Binding var currentURL: URL?
+    @Binding var isLoading: Bool
+    @Binding var estimatedProgress: Double
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -219,37 +236,68 @@ struct WebView: UIViewRepresentable {
     func makeUIView(context: Context) -> WKWebView {
         print("🌐 [WebView] Creating WKWebView for URL: \(url)")
 
+        // Enhanced configuration for full browser capabilities
         let configuration = WKWebViewConfiguration()
-        configuration.allowsInlineMediaPlayback = true
 
-        // Enable JavaScript (critical for most modern websites)
+        // Enable all media types
+        configuration.allowsInlineMediaPlayback = true
+        configuration.allowsPictureInPictureMediaPlayback = true
+        configuration.mediaTypesRequiringUserActionForPlayback = []
+
+        // Enable JavaScript and modern web features
         let preferences = WKWebpagePreferences()
         preferences.allowsContentJavaScript = true
         configuration.defaultWebpagePreferences = preferences
 
+        // Enable process pool for better performance
+        configuration.processPool = WKProcessPool()
+
+        // Create webview with enhanced configuration
         let webView = WKWebView(frame: .zero, configuration: configuration)
+
+        // Enable gestures and interactions
         webView.allowsBackForwardNavigationGestures = true
+        webView.allowsLinkPreview = true
         webView.navigationDelegate = context.coordinator
 
-        // Make webview visible
-        webView.isOpaque = false
-        webView.backgroundColor = .white
+        // Visual settings for proper rendering
+        webView.isOpaque = true
+        webView.backgroundColor = .systemBackground
 
-        print("🌐 [WebView] WKWebView created, loading URL...")
+        // Enable scrolling for full page content
+        webView.scrollView.isScrollEnabled = true
+        webView.scrollView.bounces = true
+
+        // Set user agent to desktop Safari for full website experience
+        webView.customUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"
+
+        print("🌐 [WebView] WKWebView created with full browser capabilities")
+
+        // Add KVO observers for loading state
+        webView.addObserver(context.coordinator, forKeyPath: #keyPath(WKWebView.estimatedProgress), options: .new, context: nil)
+        webView.addObserver(context.coordinator, forKeyPath: #keyPath(WKWebView.isLoading), options: .new, context: nil)
 
         // Store reference
         DispatchQueue.main.async {
             self.webView = webView
             self.currentURL = url
+            self.isLoading = true
             print("🌐 [WebView] WebView reference stored")
         }
 
-        // Load URL
-        let request = URLRequest(url: url)
+        // Load URL with proper cache policy
+        var request = URLRequest(url: url)
+        request.cachePolicy = .returnCacheDataElseLoad
         webView.load(request)
         print("🌐 [WebView] Load request sent for: \(url)")
 
         return webView
+    }
+
+    static func dismantleUIView(_ uiView: WKWebView, coordinator: Coordinator) {
+        // Remove observers when view is destroyed
+        uiView.removeObserver(coordinator, forKeyPath: #keyPath(WKWebView.estimatedProgress))
+        uiView.removeObserver(coordinator, forKeyPath: #keyPath(WKWebView.isLoading))
     }
 
     func updateUIView(_ uiView: WKWebView, context: Context) {
@@ -263,9 +311,31 @@ struct WebView: UIViewRepresentable {
             self.parent = parent
         }
 
+        // KVO observer for loading progress
+        override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
+            if keyPath == "estimatedProgress" {
+                if let webView = object as? WKWebView {
+                    DispatchQueue.main.async {
+                        self.parent.estimatedProgress = webView.estimatedProgress
+                        print("📊 [Progress] \(Int(webView.estimatedProgress * 100))%")
+                    }
+                }
+            } else if keyPath == "isLoading" {
+                if let webView = object as? WKWebView {
+                    DispatchQueue.main.async {
+                        self.parent.isLoading = webView.isLoading
+                        print("⏳ [Loading] isLoading: \(webView.isLoading)")
+                    }
+                }
+            }
+        }
+
         // Called when navigation starts
         func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
             print("🌐 [Navigation] Started loading: \(webView.url?.absoluteString ?? "unknown")")
+            DispatchQueue.main.async {
+                self.parent.isLoading = true
+            }
         }
 
         // Called when navigation completes successfully
@@ -273,6 +343,7 @@ struct WebView: UIViewRepresentable {
             print("✅ [Navigation] Finished loading: \(webView.url?.absoluteString ?? "unknown")")
             DispatchQueue.main.async {
                 self.parent.currentURL = webView.url
+                self.parent.isLoading = false
             }
         }
 
@@ -280,12 +351,18 @@ struct WebView: UIViewRepresentable {
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
             print("❌ [Navigation] Failed: \(error.localizedDescription)")
             print("❌ [Navigation] Error details: \(error)")
+            DispatchQueue.main.async {
+                self.parent.isLoading = false
+            }
         }
 
         // Called when provisional navigation fails
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
             print("❌ [Navigation] Provisional navigation failed: \(error.localizedDescription)")
             print("❌ [Navigation] Error details: \(error)")
+            DispatchQueue.main.async {
+                self.parent.isLoading = false
+            }
         }
 
         // Called when web content process terminates

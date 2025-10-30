@@ -77,21 +77,24 @@ struct StoreGridView: View {
             }
         }
         .background(Color(.systemGroupedBackground))
-        .fullScreenCover(isPresented: $showBrowser) {
+        .sheet(isPresented: $showBrowser) {
             Group {
                 if let store = selectedStore {
-                    let _ = print("🎬 [StoreGrid] fullScreenCover presenting store: \(store.name)")
+                    let _ = print("🎬 [StoreGrid] sheet presenting store: \(store.name)")
                     TryOnBrowserView(store: store)
                         .environmentObject(appState)
                 } else if let url = customURL {
-                    let _ = print("🎬 [StoreGrid] fullScreenCover presenting custom URL: \(url)")
+                    let _ = print("🎬 [StoreGrid] sheet presenting custom URL: \(url)")
                     TryOnBrowserView(customURL: url)
                         .environmentObject(appState)
                 } else {
-                    let _ = print("⚠️ [StoreGrid] fullScreenCover has no store or URL!")
+                    let _ = print("⚠️ [StoreGrid] sheet has no store or URL!")
                     Text("No URL selected")
                 }
             }
+            .presentationDetents([.large])
+            .presentationDragIndicator(.hidden)
+            .interactiveDismissDisabled()
         }
         .sheet(isPresented: $showURLInput) {
             URLInputSheet(urlText: $urlInputText) { url in
