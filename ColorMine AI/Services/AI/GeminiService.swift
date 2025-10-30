@@ -191,6 +191,15 @@ class GeminiService {
             print("📦 Found \(candidates.count) candidates")
             if let firstCandidate = candidates.first {
                 print("📦 Candidate keys: \(firstCandidate.keys)")
+
+                // Check for early termination reasons
+                if let finishReason = firstCandidate["finishReason"] as? String {
+                    print("⚠️ Finish Reason: \(finishReason)")
+                }
+                if let finishMessage = firstCandidate["finishMessage"] as? String {
+                    print("⚠️ Finish Message: \(finishMessage)")
+                }
+
                 if let content = firstCandidate["content"] as? [String: Any] {
                     print("📦 Content keys: \(content.keys)")
                     if let parts = content["parts"] as? [[String: Any]] {
@@ -204,6 +213,19 @@ class GeminiService {
                                     print("✅ Found image! MIME type: \(mimeType)")
                                 }
                             }
+                        }
+                    }
+                } else {
+                    print("❌ No 'content' key found - Gemini stopped without generating image")
+
+                    // Provide helpful error message based on finish reason
+                    if let finishReason = firstCandidate["finishReason"] as? String {
+                        if finishReason == "SAFETY" {
+                            throw GeminiError.apiErrorWithMessage("Content safety filters blocked this request. The prompt may need adjustment.")
+                        } else if finishReason == "MAX_TOKENS" || finishReason == "RECITATION" {
+                            throw GeminiError.apiErrorWithMessage("Request exceeded limits or contains copyrighted content.")
+                        } else {
+                            throw GeminiError.apiErrorWithMessage("Generation stopped: \(finishReason)")
                         }
                     }
                 }
