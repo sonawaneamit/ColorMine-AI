@@ -103,6 +103,34 @@ struct ScanView: View {
                         }
                         .padding(.horizontal, 40)
 
+                        // Accuracy Warning
+                        HStack(spacing: 10) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.yellow)
+                                .font(.title3)
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Best Results with Camera")
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.primary)
+
+                                Text("Selfies are more accurate than uploaded photos")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+
+                            Spacer()
+                        }
+                        .padding()
+                        .background(Color.yellow.opacity(0.15))
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.yellow.opacity(0.3), lineWidth: 1)
+                        )
+                        .padding(.horizontal, 30)
+
                         Spacer()
 
                         VStack(spacing: 16) {
@@ -150,8 +178,8 @@ struct ScanView: View {
             displayedImage = newValue
             isFlipped = false  // Reset flip state
         }
-        .sheet(isPresented: $showCamera) {
-            ImagePicker(image: $capturedImage, sourceType: .camera)
+        .fullScreenCover(isPresented: $showCamera) {
+            CustomCameraView(capturedImage: $capturedImage)
         }
         .sheet(isPresented: $showPhotoLibrary) {
             ImagePicker(image: $capturedImage, sourceType: .photoLibrary)
