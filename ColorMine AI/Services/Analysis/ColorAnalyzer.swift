@@ -21,27 +21,38 @@ class ColorAnalyzer {
         contrast: Contrast,
         confidence: Double
     ) {
+        print("🎨 Starting color analysis...")
+
         guard let cgImage = image.cgImage else {
+            print("❌ ERROR: cgImage is nil, returning default softAutumn")
             return (.softAutumn, .neutral, .medium, 0.5)
         }
 
+        print("✅ cgImage loaded successfully")
+
         // Sample RGB from face
         let rgb = sampleSkinTone(from: cgImage, faceObservation: faceObservation)
+        print("📊 Sampled RGB: R=\(String(format: "%.3f", rgb.r)), G=\(String(format: "%.3f", rgb.g)), B=\(String(format: "%.3f", rgb.b))")
 
         // Calculate undertone
         let undertone = calculateUndertone(rgb: rgb)
+        print("🌡️ Calculated undertone: \(undertone.rawValue)")
 
         // Calculate depth
         let depth = calculateDepth(rgb: rgb)
+        print("💡 Calculated depth: \(depth)")
 
         // Calculate contrast
         let contrast = calculateContrast(from: image, faceObservation: faceObservation)
+        print("⚖️ Calculated contrast: \(contrast.rawValue)")
 
         // Match season
         let season = matchSeason(undertone: undertone, depth: depth, contrast: contrast)
+        print("🍂 Matched season: \(season.rawValue)")
 
         // Calculate confidence
         let confidence = calculateConfidence(image: image, rgb: rgb)
+        print("✨ Confidence: \(String(format: "%.1f", confidence * 100))%")
 
         return (season, undertone, contrast, confidence)
     }
@@ -195,6 +206,8 @@ class ColorAnalyzer {
 
     // MARK: - Season Matching
     private func matchSeason(undertone: Undertone, depth: String, contrast: Contrast) -> ColorSeason {
+        print("🔍 Matching season with: undertone=\(undertone.rawValue), depth=\(depth), contrast=\(contrast.rawValue)")
+
         switch (undertone, depth, contrast) {
         // Winters: Cool undertone, high contrast
         case (.cool, "deep", .high):
@@ -229,6 +242,7 @@ class ColorAnalyzer {
             return .lightSummer
 
         default:
+            print("⚠️ WARNING: No season match found! Using default softAutumn. This indicates a logic gap in matchSeason.")
             return .softAutumn
         }
     }
