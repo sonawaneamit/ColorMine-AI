@@ -166,6 +166,9 @@ struct PacksGenerationView: View {
         }
 
         Task {
+            // Haptic feedback when generation starts
+            HapticManager.shared.packGenerationStarted()
+
             var updatedProfile = profile
             var stepIndex = 0
 
@@ -189,6 +192,8 @@ struct PacksGenerationView: View {
                 updatedProfile.texturePackImageURL = textureURL
                 updatedProfile.packsGenerated.textures = true
                 appState.saveProfile(updatedProfile)
+                // Haptic feedback for pack completion
+                HapticManager.shared.packCompleted()
                 } catch {
                     print("❌ Texture Pack generation failed: \(error.localizedDescription)")
                     errorMessage = "Texture Pack: \(error.localizedDescription)"
@@ -222,6 +227,8 @@ struct PacksGenerationView: View {
                 updatedProfile.jewelryPackImageURL = jewelryURL
                 updatedProfile.packsGenerated.jewelry = true
                 appState.saveProfile(updatedProfile)
+                // Haptic feedback for pack completion
+                HapticManager.shared.packCompleted()
                 } catch {
                     print("❌ Jewelry Pack generation failed: \(error.localizedDescription)")
                     errorMessage = "Jewelry Pack: \(error.localizedDescription)"
@@ -256,6 +263,8 @@ struct PacksGenerationView: View {
                 updatedProfile.makeupPackImageURL = makeupURL
                 updatedProfile.packsGenerated.makeup = true
                 appState.saveProfile(updatedProfile)
+                // Haptic feedback for pack completion
+                HapticManager.shared.packCompleted()
                 } catch {
                     print("❌ Makeup Pack generation failed: \(error.localizedDescription)")
                     errorMessage = "Makeup Pack: \(error.localizedDescription)"
@@ -288,6 +297,8 @@ struct PacksGenerationView: View {
                 updatedProfile.hairColorPackImageURL = hairURL
                 updatedProfile.packsGenerated.hairColor = true
                 appState.saveProfile(updatedProfile)
+                // Haptic feedback for pack completion
+                HapticManager.shared.packCompleted()
                 } catch {
                     print("❌ Hair Color Pack generation failed: \(error.localizedDescription)")
                     errorMessage = "Hair Color Pack: \(error.localizedDescription)"
@@ -312,8 +323,9 @@ struct PacksGenerationView: View {
                 print("✅ Style Cards already generated, skipping")
             }
 
-            // Complete - send final notification
+            // Complete - send final notification and celebration haptic
             isGenerating = false
+            HapticManager.shared.allPacksCompleted()
             NotificationManager.shared.sendAllPacksCompleteNotification()
 
             // Save to history

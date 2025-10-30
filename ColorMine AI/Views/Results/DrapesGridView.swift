@@ -50,6 +50,8 @@ struct DrapesGridView: View {
                                     showZoomView = true
                                 }
                                 .onAppear {
+                                    // Haptic feedback for drapes reveal - big wow moment!
+                                    HapticManager.shared.drapesRevealed()
                                     // Request review after drapes generation (first wow moment!)
                                     ReviewManager.shared.requestReviewAfterDrapes()
                                 }
@@ -227,7 +229,10 @@ struct FocusColorButton: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        Button(action: {
+            HapticManager.shared.colorSelected()
+            action()
+        }) {
             VStack(spacing: 8) {
                 ZStack {
                     Circle()

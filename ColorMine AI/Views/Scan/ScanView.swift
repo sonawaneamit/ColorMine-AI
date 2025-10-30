@@ -237,6 +237,9 @@ struct ScanView: View {
 
                 appState.saveProfile(profile)
 
+                // Haptic feedback for season discovery milestone
+                HapticManager.shared.seasonDiscovered()
+
                 isAnalyzing = false
                 navigateToResults = true
 
