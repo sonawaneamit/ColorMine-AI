@@ -45,12 +45,20 @@ struct ProfileDashboardView: View {
                         }
                         .tag(0)
 
+                    // History Tab
+                    HistoryView()
+                        .environmentObject(appState)
+                        .tabItem {
+                            Label("History", systemImage: "clock.arrow.circlepath")
+                        }
+                        .tag(1)
+
                     // Wardrobe Tab
                     WardrobeTab()
                         .tabItem {
                             Label("Wardrobe", systemImage: "tshirt.fill")
                         }
-                        .tag(1)
+                        .tag(2)
                 }
                 .navigationBarBackButtonHidden(true)
                 .toolbar {

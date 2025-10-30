@@ -286,6 +286,10 @@ struct PacksGenerationView: View {
             isGenerating = false
             NotificationManager.shared.sendAllPacksCompleteNotification()
 
+            // Save to history
+            appState.profileHistory.addProfile(updatedProfile)
+            print("✅ Profile saved to history")
+
             // Navigate to dashboard
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 navigateToDashboard = true

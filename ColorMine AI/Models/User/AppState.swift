@@ -13,6 +13,7 @@ class AppState: ObservableObject {
     @Published var currentProfile: UserProfile?
     @Published var isSubscribed: Bool = false
     @Published var isLoading: Bool = false
+    @Published var profileHistory = ProfileHistory()
 
     let subscriptionManager = SubscriptionManager.shared
     let persistenceManager = PersistenceManager.shared
@@ -23,6 +24,9 @@ class AppState: ObservableObject {
     init() {
         // Load saved profile
         currentProfile = persistenceManager.loadProfile()
+
+        // Load profile history
+        profileHistory.loadFromStorage()
 
         // Check if debug bypass was previously enabled
         #if DEBUG
