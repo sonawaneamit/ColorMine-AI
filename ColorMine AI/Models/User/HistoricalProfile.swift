@@ -51,8 +51,24 @@ struct HistoricalProfile: Identifiable, Codable {
 class ProfileHistory: ObservableObject {
     @Published var profiles: [HistoricalProfile] = []
 
-    /// Add a new profile to history
+    /// Add a new profile to history (only if not duplicate)
     func addProfile(_ profile: UserProfile) {
+        // Check if this is a duplicate of the most recent profile
+        if let lastProfile = profiles.first {
+            // Compare key attributes to avoid saving duplicates
+            if lastProfile.profile.id == profile.id &&
+               lastProfile.profile.season == profile.season &&
+               lastProfile.profile.undertone == profile.undertone &&
+               lastProfile.profile.contrast == profile.contrast {
+                // Check if generated within last 5 minutes (likely same session)
+                let timeDifference = Date().timeIntervalSince(lastProfile.timestamp)
+                if timeDifference < 300 { // 5 minutes
+                    print("⚠️ Skipping duplicate profile save (same session)")
+                    return
+                }
+            }
+        }
+
         let historical = HistoricalProfile(profile: profile)
         profiles.insert(historical, at: 0) // Most recent first
         saveToStorage()
