@@ -104,18 +104,31 @@ struct TryOnBrowserView: View {
                 return
             }
 
-            // Create garment item
-            let garment = GarmentItem(
-                imageURL: garmentURL,
-                sourceStore: store.name
-            )
-
-            // Add to profile
+            // Get profile
             guard var profile = appState.currentProfile else {
                 print("❌ No current profile")
                 return
             }
 
+            // Analyze garment color (on-device)
+            let season = profile.season
+            let palette = profile.favoriteColors
+            let analysis = ColorMatchingService.shared.analyzeGarment(
+                screenshot,
+                userSeason: season,
+                userPalette: palette
+            )
+
+            // Create garment item with color analysis
+            let garment = GarmentItem(
+                imageURL: garmentURL,
+                sourceStore: store.name,
+                dominantColorHex: analysis.dominantColorHex,
+                matchesUserSeason: analysis.matchesSeason,
+                colorMatchScore: analysis.matchScore
+            )
+
+            // Add to profile
             profile.savedGarments.append(garment)
             appState.saveProfile(profile)
 

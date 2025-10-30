@@ -54,10 +54,11 @@ struct ProfileDashboardView: View {
                         }
                         .tag(1)
 
-                    // Wardrobe Tab
-                    WardrobeTab()
+                    // Try-On Tab
+                    TryOnTab()
+                        .environmentObject(appState)
                         .tabItem {
-                            Label("Wardrobe", systemImage: "tshirt.fill")
+                            Label("Try-On", systemImage: "tshirt.fill")
                         }
                         .tag(2)
                 }
@@ -469,28 +470,436 @@ struct TextCardPreview: View {
     }
 }
 
-// MARK: - Wardrobe Tab
-struct WardrobeTab: View {
+// MARK: - Try-On Tab
+struct TryOnTab: View {
+    @EnvironmentObject var appState: AppState
+    @State private var showSetup = false
+    @State private var showStoreGrid = false
+    @State private var showSavedGarments = false
+    @State private var showCreditsPurchase = false
+    @State private var selectedResult: TryOnResult?
+    @State private var showResult = false
+
+    private var profile: UserProfile? {
+        appState.currentProfile
+    }
+
+    private var isSetupComplete: Bool {
+        profile?.hasTryOnSetup ?? false
+    }
+
+    private var credits: Int {
+        profile?.tryOnCredits ?? 0
+    }
+
+    private var savedGarments: [GarmentItem] {
+        profile?.savedGarments ?? []
+    }
+
+    private var recentTryOns: [TryOnResult] {
+        (profile?.tryOnHistory ?? [])
+            .filter { $0.isRecent }
+            .sorted { $0.createdAt > $1.createdAt }
+    }
+
     var body: some View {
-        ZStack {
-            Color(.systemGroupedBackground)
-                .ignoresSafeArea()
+        NavigationStack {
+            ZStack {
+                Color(.systemGroupedBackground)
+                    .ignoresSafeArea()
 
-            VStack(spacing: 20) {
-                Image(systemName: "tshirt.fill")
-                    .font(.system(size: 60))
-                    .foregroundColor(.purple.opacity(0.3))
+                if !isSetupComplete {
+                    // Setup required
+                    setupRequiredView
+                } else {
+                    // Main try-on interface
+                    mainTryOnView
+                }
+            }
+            .navigationTitle("Try-On")
+            .navigationBarTitleDisplayMode(.large)
+            .sheet(isPresented: $showSetup) {
+                NavigationStack {
+                    FullBodyPhotoSetupView()
+                        .environmentObject(appState)
+                }
+            }
+            .fullScreenCover(isPresented: $showStoreGrid) {
+                NavigationStack {
+                    StoreGridView()
+                        .environmentObject(appState)
+                }
+            }
+            .sheet(isPresented: $showSavedGarments) {
+                NavigationStack {
+                    SavedGarmentsView()
+                        .environmentObject(appState)
+                }
+            }
+            .sheet(isPresented: $showCreditsPurchase) {
+                CreditsPurchaseView()
+                    .environmentObject(appState)
+            }
+            .fullScreenCover(isPresented: $showResult) {
+                if let result = selectedResult {
+                    TryOnResultView(result: result)
+                        .environmentObject(appState)
+                }
+            }
+        }
+    }
 
-                Text("Wardrobe Coming Soon")
-                    .font(.title2)
-                    .fontWeight(.semibold)
+    // MARK: - Setup Required View
+    private var setupRequiredView: some View {
+        VStack(spacing: 30) {
+            Spacer()
 
-                Text("Shop personalized clothing recommendations\nbased on your color profile")
-                    .font(.subheadline)
+            Image(systemName: "wand.and.stars")
+                .font(.system(size: 70))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [.purple, .pink],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+
+            VStack(spacing: 12) {
+                Text("Virtual Try-On")
+                    .font(.title)
+                    .fontWeight(.bold)
+
+                Text("See how clothes look on you before buying")
+                    .font(.body)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
+                    .padding(.horizontal, 30)
+            }
+
+            VStack(spacing: 12) {
+                SimpleFeatureRow(icon: "photo.fill", text: "Upload one full-body photo")
+                SimpleFeatureRow(icon: "bag.fill", text: "Browse 25+ fashion stores")
+                SimpleFeatureRow(icon: "paintpalette.fill", text: "Get instant color analysis")
+                SimpleFeatureRow(icon: "leaf.fill", text: "Shop smarter, waste less")
+            }
+
+            Spacer()
+
+            Button(action: { showSetup = true }) {
+                HStack {
+                    Image(systemName: "arrow.right.circle.fill")
+                    Text("Get Started")
+                }
+            }
+            .buttonStyle(PrimaryButtonStyle())
+            .padding(.horizontal, 40)
+            .padding(.bottom, 40)
+        }
+    }
+
+    // MARK: - Main Try-On View
+    private var mainTryOnView: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                // Credits balance
+                creditsBalanceCard
+
+                // Quick actions
+                quickActionsSection
+
+                // Saved garments preview
+                if !savedGarments.isEmpty {
+                    savedGarmentsSection
+                }
+
+                // Recent try-ons
+                if !recentTryOns.isEmpty {
+                    recentTryOnsSection
+                }
+
+                Spacer().frame(height: 40)
             }
             .padding()
+        }
+    }
+
+    // MARK: - Credits Balance Card
+    private var creditsBalanceCard: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Your Credits")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+
+                Text(CreditsManager.formatCredits(credits))
+                    .font(.title)
+                    .fontWeight(.bold)
+
+                Text("3 credits per try-on")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            Spacer()
+
+            Button(action: { showCreditsPurchase = true }) {
+                HStack(spacing: 6) {
+                    Image(systemName: "plus.circle.fill")
+                    Text("Buy")
+                }
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundColor(.white)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(
+                    LinearGradient(
+                        colors: [.purple, .pink],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .cornerRadius(20)
+            }
+        }
+        .padding()
+        .background(Color(.systemBackground))
+        .cornerRadius(16)
+        .shadow(color: .black.opacity(0.05), radius: 5, y: 2)
+    }
+
+    // MARK: - Quick Actions
+    private var quickActionsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Quick Actions")
+                .font(.headline)
+                .padding(.horizontal, 4)
+
+            HStack(spacing: 12) {
+                QuickActionCard(
+                    icon: "bag.fill",
+                    title: "Browse Stores",
+                    color: .purple
+                ) {
+                    showStoreGrid = true
+                }
+
+                QuickActionCard(
+                    icon: "photo.fill",
+                    title: "My Garments",
+                    color: .pink
+                ) {
+                    showSavedGarments = true
+                }
+            }
+        }
+    }
+
+    // MARK: - Saved Garments Section
+    private var savedGarmentsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Saved Garments")
+                    .font(.headline)
+
+                Spacer()
+
+                Button("See All") {
+                    showSavedGarments = true
+                }
+                .font(.subheadline)
+                .foregroundColor(.purple)
+            }
+            .padding(.horizontal, 4)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(savedGarments.prefix(5)) { garment in
+                        SavedGarmentThumbnail(garment: garment)
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Recent Try-Ons Section
+    private var recentTryOnsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Recent Try-Ons")
+                .font(.headline)
+                .padding(.horizontal, 4)
+
+            ForEach(recentTryOns.prefix(3)) { result in
+                RecentTryOnCard(result: result) {
+                    selectedResult = result
+                    showResult = true
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Simple Feature Row (for Try-On)
+private struct SimpleFeatureRow: View {
+    let icon: String
+    let text: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .foregroundColor(.purple)
+                .frame(width: 24)
+
+            Text(text)
+                .font(.subheadline)
+        }
+    }
+}
+
+// MARK: - Quick Action Card
+private struct QuickActionCard: View {
+    let icon: String
+    let title: String
+    let color: Color
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.title)
+                    .foregroundColor(.white)
+
+                Text(title)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 24)
+            .background(
+                LinearGradient(
+                    colors: [color, color.opacity(0.7)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .cornerRadius(16)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Saved Garment Thumbnail
+private struct SavedGarmentThumbnail: View {
+    let garment: GarmentItem
+    @State private var garmentImage: UIImage?
+
+    var body: some View {
+        VStack(spacing: 4) {
+            if let image = garmentImage {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 100, height: 120)
+                    .clipped()
+                    .cornerRadius(12)
+            } else {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(.systemGray5))
+                    .frame(width: 100, height: 120)
+            }
+
+            if let store = garment.sourceStore {
+                Text(store)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .frame(width: 100)
+            }
+        }
+        .onAppear {
+            loadImage()
+        }
+    }
+
+    private func loadImage() {
+        DispatchQueue.global(qos: .userInitiated).async {
+            if let data = try? Data(contentsOf: garment.imageURL),
+               let image = UIImage(data: data) {
+                DispatchQueue.main.async {
+                    self.garmentImage = image
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Recent Try-On Card
+private struct RecentTryOnCard: View {
+    let result: TryOnResult
+    let action: () -> Void
+    @State private var resultImage: UIImage?
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                // Result thumbnail
+                if let image = resultImage {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 80, height: 100)
+                        .clipped()
+                        .cornerRadius(8)
+                } else {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color(.systemGray5))
+                        .frame(width: 80, height: 100)
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    if let store = result.garmentItem.sourceStore {
+                        Text(store)
+                            .font(.headline)
+                    }
+
+                    Text(result.createdAt.formatted(date: .abbreviated, time: .shortened))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    HStack(spacing: 4) {
+                        Image(systemName: "sparkles")
+                            .font(.caption2)
+                        Text("\(result.creditsUsed) credits")
+                            .font(.caption2)
+                    }
+                    .foregroundColor(.purple)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .foregroundColor(.secondary)
+            }
+            .padding()
+            .background(Color(.systemBackground))
+            .cornerRadius(12)
+        }
+        .buttonStyle(.plain)
+        .onAppear {
+            loadImage()
+        }
+    }
+
+    private func loadImage() {
+        DispatchQueue.global(qos: .userInitiated).async {
+            if let data = try? Data(contentsOf: result.resultImageURL),
+               let image = UIImage(data: data) {
+                DispatchQueue.main.async {
+                    self.resultImage = image
+                }
+            }
         }
     }
 }

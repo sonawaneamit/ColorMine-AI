@@ -121,6 +121,7 @@ enum TryOnError: LocalizedError {
     case jsonParsingFailed
     case invalidImageURL
     case imageDownloadFailed
+    case failedToSave
 
     var errorDescription: String? {
         switch self {
@@ -140,6 +141,8 @@ enum TryOnError: LocalizedError {
             return "Couldn't locate your try-on result."
         case .imageDownloadFailed:
             return "Couldn't download your try-on result. Check your internet connection."
+        case .failedToSave:
+            return "Couldn't save your try-on result to storage."
         }
     }
 
