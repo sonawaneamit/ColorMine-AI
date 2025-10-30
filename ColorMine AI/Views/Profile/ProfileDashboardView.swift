@@ -157,17 +157,11 @@ struct ProfileTab: View {
                         .font(.title2)
                         .fontWeight(.bold)
 
-                    // Season badge
+                    // Season badge with season-specific gradient
                     Text(profile.season.rawValue)
                         .font(.largeTitle)
                         .fontWeight(.heavy)
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [.purple, .pink],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
+                        .foregroundStyle(profile.season.gradient)
 
                     // Analysis details in grid format - matching PaletteSelectionView
                     HStack(spacing: 20) {

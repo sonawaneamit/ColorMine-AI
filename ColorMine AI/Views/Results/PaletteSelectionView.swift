@@ -86,26 +86,14 @@ struct PaletteSelectionView: View {
                             Text(currentSeason.rawValue)
                                 .font(.largeTitle)
                                 .fontWeight(.heavy)
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        colors: [.purple, .pink],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
+                                .foregroundStyle(currentSeason.gradient)
 
                             Button(action: {
                                 showSeasonPicker = true
                             }) {
                                 Image(systemName: "pencil.circle.fill")
                                     .font(.title2)
-                                    .foregroundStyle(
-                                        LinearGradient(
-                                            colors: [.purple, .pink],
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
+                                    .foregroundStyle(currentSeason.gradient)
                             }
                         }
 
