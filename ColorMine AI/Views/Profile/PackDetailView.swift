@@ -11,7 +11,6 @@ struct PackDetailView: View {
     let profile: UserProfile
     let packType: PackDetailType
 
-    @State private var showShareSheet = false
     @State private var imageToShare: UIImage?
     @State private var showSaveAlert = false
     @State private var saveAlertMessage = ""
@@ -95,10 +94,11 @@ struct PackDetailView: View {
         }
         .navigationTitle(packType.displayTitle)
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $showShareSheet) {
-            if let image = imageToShare {
-                ShareSheet(items: [ImageWatermarkUtility.shared.addWatermark(to: image)])
-            }
+        .sheet(item: Binding(
+            get: { imageToShare.map { ShareableImage(image: $0) } },
+            set: { imageToShare = $0?.image }
+        )) { shareableImage in
+            ShareSheet(items: [ImageWatermarkUtility.shared.addWatermark(to: shareableImage.image)])
         }
         .alert("Image Saved", isPresented: $showSaveAlert) {
             Button("OK", role: .cancel) {}
@@ -109,8 +109,13 @@ struct PackDetailView: View {
 
     private func shareImage(_ image: UIImage) {
         imageToShare = image
-        showShareSheet = true
     }
+}
+
+// MARK: - Shareable Image
+struct ShareableImage: Identifiable {
+    let id = UUID()
+    let image: UIImage
 }
 
 // MARK: - Image Pack Detail
