@@ -505,7 +505,8 @@ struct TryOnTab: View {
     }
 
     private var savedGarments: [GarmentItem] {
-        profile?.savedGarments ?? []
+        // Reverse order so newest garments appear first (left side of carousel)
+        (profile?.savedGarments ?? []).reversed()
     }
 
     private var recentTryOns: [TryOnResult] {
@@ -678,7 +679,7 @@ struct TryOnTab: View {
                     .font(.title)
                     .fontWeight(.bold)
 
-                Text("1 credit per try-on")
+                Text("1 credit per Try-On")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -1003,18 +1004,33 @@ private struct RecentTryOnCard: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 12) {
-                // Result thumbnail
-                if let image = resultImage {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 80, height: 100)
-                        .clipped()
-                        .cornerRadius(8)
-                } else {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color(.systemGray5))
-                        .frame(width: 80, height: 100)
+                // Result thumbnail with video badge
+                ZStack(alignment: .topTrailing) {
+                    if let image = resultImage {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 80, height: 100)
+                            .clipped()
+                            .cornerRadius(8)
+                    } else {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color(.systemGray5))
+                            .frame(width: 80, height: 100)
+                    }
+
+                    // Video badge if video exists
+                    if result.videoURL != nil {
+                        Image(systemName: "play.circle.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(.white)
+                            .background(
+                                Circle()
+                                    .fill(Color.green.opacity(0.9))
+                                    .frame(width: 24, height: 24)
+                            )
+                            .padding(6)
+                    }
                 }
 
                 VStack(alignment: .leading, spacing: 6) {

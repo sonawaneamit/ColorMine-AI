@@ -15,6 +15,7 @@ class AppState: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var profileHistory = ProfileHistory()
     @Published var navigationResetID: UUID = UUID()  // Forces navigation stack to reset
+    @Published var isSavingGarment: Bool = false  // Tracks when a garment is being saved from browser
 
     let subscriptionManager = SubscriptionManager.shared
     let persistenceManager = PersistenceManager.shared

@@ -17,6 +17,7 @@ class GeminiService {
     // Different models for different purposes
     private let visionModel = "gemini-2.0-flash-exp"  // Nano Banana - for analysis/text
     private let imageModel = "gemini-2.5-flash-image"  // For image generation
+    private let videoModel = "veo-001"  // Veo 3.1 for video generation
     private let baseURL = "https://generativelanguage.googleapis.com/v1beta/models"
 
     // 🎨 Image Generation Mode
@@ -290,6 +291,272 @@ class GeminiService {
             selfieImage: selfieImage,
             packType: .hairColorPack
         )
+    }
+
+    // MARK: - Virtual Try-On
+    /// Generate virtual try-on using Gemini Nano Banana (same model used for drapes/packs)
+    /// - Parameters:
+    ///   - personPhoto: Full body photo of the person
+    ///   - garmentPhoto: Photo of the clothing item to try on
+    /// - Returns: Photorealistic try-on result image
+    func generateTryOn(
+        personPhoto: UIImage,
+        garmentPhoto: UIImage
+    ) async throws -> UIImage {
+
+        print("🎨 Starting Gemini Nano Banana try-on generation...")
+
+        // Convert images to base64
+        guard let personData = personPhoto.jpegData(compressionQuality: 0.8) else {
+            throw GeminiError.invalidImage
+        }
+        guard let garmentData = garmentPhoto.jpegData(compressionQuality: 0.8) else {
+            throw GeminiError.invalidImage
+        }
+
+        let personBase64 = personData.base64EncodedString()
+        let garmentBase64 = garmentData.base64EncodedString()
+
+        // Build request URL using IMAGE GENERATION model (Nano Banana)
+        let endpoint = "\(baseURL)/\(imageModel):generateContent"
+        guard var urlComponents = URLComponents(string: endpoint) else {
+            throw GeminiError.invalidURL
+        }
+        urlComponents.queryItems = [URLQueryItem(name: "key", value: apiKey)]
+        guard let url = urlComponents.url else {
+            throw GeminiError.invalidURL
+        }
+
+        // Craft detailed prompt for virtual try-on
+        let prompt = """
+        You will receive two images: (1) a full-body photo of a person wearing casual clothes (reference) and (2) a product image of a garment (dress, top/shirt, or pants) that the user wants to try on. First, automatically identify the garment type from image #2 (dress, top/outerwear, or pants/shorts). Then generate a photorealistic image of the person from image #1 now wearing the garment from image #2, with the following rules:
+
+        • Replace the original clothing in image #1 appropriately:
+          - If it's a dress: remove any pants/jeans in the original photo and show bare legs (or appropriate length) consistent with the dress length.
+          - If it's a top/shirt/jacket: keep the original lower body clothing exactly as in the photo; only replace the upper body.
+          - If it's pants/shorts: keep the original top exactly and only replace lower body.
+
+        • Always preserve the person's face, hair, skin tone, body shape, pose, lighting, and proportions from the reference image.
+        • Fit the new garment naturally, with realistic drape, fabric fold, shadowing and seamless transition at neckline, waist/hips, sleeves, hemline and shoes (if visible).
+        • If shoes conflict with the new outfit (for example, dress length vs casual sneakers): adjust or remove shoes if necessary for realism.
+        • Output is a single high-resolution photorealistic image, showing the person as if they changed into the new garment.
+
+        Please produce only the image result.
+        """
+
+        // Build request body with BOTH images
+        let requestBody: [String: Any] = [
+            "contents": [
+                [
+                    "parts": [
+                        ["text": prompt],
+                        [
+                            "inline_data": [
+                                "mime_type": "image/jpeg",
+                                "data": personBase64
+                            ]
+                        ],
+                        [
+                            "inline_data": [
+                                "mime_type": "image/jpeg",
+                                "data": garmentBase64
+                            ]
+                        ]
+                    ]
+                ]
+            ],
+            "generationConfig": [
+                "temperature": 0.4,
+                "topK": 32,
+                "topP": 1,
+                "maxOutputTokens": 4096
+            ]
+        ]
+
+        // Create request
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+        request.timeoutInterval = 60 // 60 second timeout
+
+        print("📤 Sending try-on request to Gemini Nano Banana...")
+
+        // Make API call
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw GeminiError.invalidResponse
+        }
+
+        print("📥 Response status code: \(httpResponse.statusCode)")
+
+        guard httpResponse.statusCode == 200 else {
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let error = json["error"] as? [String: Any],
+               let message = error["message"] as? String {
+                print("❌ Gemini API Error: \(message)")
+                throw GeminiError.apiErrorWithMessage(message)
+            }
+            throw GeminiError.apiError(statusCode: httpResponse.statusCode)
+        }
+
+        // Parse response
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw GeminiError.invalidResponse
+        }
+
+        // Extract image from response (same structure as drapes/packs)
+        if let candidates = json["candidates"] as? [[String: Any]],
+           let firstCandidate = candidates.first,
+           let content = firstCandidate["content"] as? [String: Any],
+           let parts = content["parts"] as? [[String: Any]] {
+
+            // Try to find image in any part
+            for part in parts {
+                if let imageData = part["inline_data"] as? [String: Any] ?? part["inlineData"] as? [String: Any],
+                   let base64String = imageData["data"] as? String,
+                   let decodedData = Data(base64Encoded: base64String),
+                   let generatedImage = UIImage(data: decodedData) {
+                    print("✅ Gemini try-on generation complete!")
+                    return generatedImage
+                }
+            }
+        }
+
+        // Check for early termination
+        if let candidates = json["candidates"] as? [[String: Any]],
+           let firstCandidate = candidates.first,
+           let finishReason = firstCandidate["finishReason"] as? String {
+            if finishReason == "SAFETY" {
+                throw GeminiError.apiErrorWithMessage("Content safety filters blocked this request. Try with different photos.")
+            } else {
+                throw GeminiError.apiErrorWithMessage("Generation stopped: \(finishReason)")
+            }
+        }
+
+        print("❌ Could not parse try-on image from response")
+        throw GeminiError.invalidResponse
+    }
+
+    // MARK: - Video Generation
+    /// Generate video from try-on result using Gemini Veo 3.1
+    /// - Parameters:
+    ///   - tryOnImage: The try-on result image to animate
+    ///   - prompt: Optional custom prompt (default: fashion model animation)
+    /// - Returns: Video data (MP4)
+    func generateVideo(
+        from image: UIImage,
+        prompt: String? = nil
+    ) async throws -> Data {
+
+        print("🎬 Starting Gemini Veo 3.1 video generation...")
+
+        // Convert image to base64
+        guard let imageData = image.jpegData(compressionQuality: 0.9) else {
+            throw GeminiError.invalidImage
+        }
+
+        let base64Image = imageData.base64EncodedString()
+
+        // Build request URL for video generation
+        let endpoint = "\(baseURL)/\(videoModel):generateContent"
+        guard var urlComponents = URLComponents(string: endpoint) else {
+            throw GeminiError.invalidURL
+        }
+        urlComponents.queryItems = [URLQueryItem(name: "key", value: apiKey)]
+        guard let url = urlComponents.url else {
+            throw GeminiError.invalidURL
+        }
+
+        // Default prompt for fashion try-on video
+        let defaultPrompt = "The person slowly turns and poses naturally to showcase the outfit from different angles, smooth fashion model movement, professional photoshoot"
+
+        // Build request body
+        let requestBody: [String: Any] = [
+            "contents": [
+                [
+                    "parts": [
+                        ["text": prompt ?? defaultPrompt],
+                        [
+                            "inline_data": [
+                                "mime_type": "image/jpeg",
+                                "data": base64Image
+                            ]
+                        ]
+                    ]
+                ]
+            ],
+            "generationConfig": [
+                "temperature": 0.4,
+                "topK": 32,
+                "topP": 1
+            ]
+        ]
+
+        // Create request
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+        request.timeoutInterval = 120 // 2 minute timeout for video processing
+
+        print("📤 Sending video generation request to Gemini Veo 3.1...")
+
+        // Make API request
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw GeminiError.invalidResponse
+        }
+
+        print("📥 Video response status code: \(httpResponse.statusCode)")
+
+        guard httpResponse.statusCode == 200 else {
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let error = json["error"] as? [String: Any],
+               let message = error["message"] as? String {
+                print("❌ Gemini API Error: \(message)")
+                throw GeminiError.apiErrorWithMessage(message)
+            }
+            throw GeminiError.apiError(statusCode: httpResponse.statusCode)
+        }
+
+        // Parse response
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw GeminiError.invalidResponse
+        }
+
+        // Extract video from response (Veo returns base64-encoded video)
+        if let candidates = json["candidates"] as? [[String: Any]],
+           let firstCandidate = candidates.first,
+           let content = firstCandidate["content"] as? [String: Any],
+           let parts = content["parts"] as? [[String: Any]] {
+
+            // Try to find video in any part
+            for part in parts {
+                if let videoData = part["inline_data"] as? [String: Any] ?? part["inlineData"] as? [String: Any],
+                   let base64String = videoData["data"] as? String,
+                   let decodedData = Data(base64Encoded: base64String) {
+                    print("✅ Gemini video generation complete!")
+                    return decodedData
+                }
+            }
+        }
+
+        // Check for early termination
+        if let candidates = json["candidates"] as? [[String: Any]],
+           let firstCandidate = candidates.first,
+           let finishReason = firstCandidate["finishReason"] as? String {
+            if finishReason == "SAFETY" {
+                throw GeminiError.apiErrorWithMessage("Content safety filters blocked video generation.")
+            } else {
+                throw GeminiError.apiErrorWithMessage("Generation stopped: \(finishReason)")
+            }
+        }
+
+        print("❌ Could not parse video from response")
+        throw GeminiError.invalidResponse
     }
 
     // MARK: - Core Image Generation

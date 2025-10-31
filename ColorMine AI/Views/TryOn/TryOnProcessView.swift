@@ -15,11 +15,20 @@ struct TryOnProcessView: View {
 
     @State private var isProcessing = false
     @State private var processingProgress: Double = 0.0
-    @State private var statusMessage = "Preparing your try-on..."
+    @State private var statusMessage = "Preparing your Try-On..."
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var tryOnResult: TryOnResult?
     @State private var showResult = false
+    @State private var showCreditsPurchase = false
+
+    private var currentCredits: Int {
+        appState.currentProfile?.tryOnCredits ?? 0
+    }
+
+    private var hasEnoughCredits: Bool {
+        currentCredits >= 1
+    }
 
     var body: some View {
         NavigationStack {
@@ -59,22 +68,68 @@ struct TryOnProcessView: View {
 
                     Spacer()
 
-                    // Credits info
-                    HStack(spacing: 6) {
-                        Image(systemName: "sparkles")
-                            .foregroundColor(.purple)
-                        Text("This will use 3 credits")
-                            .font(.footnote)
-                            .foregroundColor(.secondary)
+                    // Credit Balance Card
+                    VStack(spacing: 16) {
+                        // Current balance
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Your Balance")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+
+                                HStack(spacing: 6) {
+                                    Image(systemName: "sparkles")
+                                        .foregroundColor(.purple)
+                                    Text(CreditsManager.formatCredits(currentCredits))
+                                        .font(.title2)
+                                        .fontWeight(.bold)
+                                }
+                            }
+
+                            Spacer()
+
+                            // Cost indicator
+                            VStack(alignment: .trailing, spacing: 4) {
+                                Text("Cost")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+
+                                Text("1 credit")
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.purple)
+                            }
+                        }
+                        .padding()
+                        .background(Color(.systemBackground))
+                        .cornerRadius(12)
+
+                        // Warning if no credits
+                        if !hasEnoughCredits {
+                            HStack(spacing: 8) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundColor(.orange)
+                                Text("You need at least 1 credit to Try-On")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.horizontal)
+                        }
                     }
+                    .padding(.horizontal, 40)
                     .padding(.bottom, 20)
 
                     // Action buttons
                     VStack(spacing: 12) {
                         Button(action: startTryOn) {
                             HStack {
-                                Image(systemName: "wand.and.stars")
-                                Text("Try It On")
+                                if hasEnoughCredits {
+                                    Image(systemName: "wand.and.stars")
+                                    Text("Try It On")
+                                } else {
+                                    Image(systemName: "plus.circle.fill")
+                                    Text("Get Credits")
+                                }
                             }
                         }
                         .buttonStyle(PrimaryButtonStyle())
@@ -113,6 +168,9 @@ struct TryOnProcessView: View {
                     TryOnResultView(result: result)
                 }
             }
+            .sheet(isPresented: $showCreditsPurchase) {
+                CreditsPurchaseView()
+            }
         }
     }
 
@@ -124,10 +182,10 @@ struct TryOnProcessView: View {
             return
         }
 
-        // Check credits
+        // Check credits - if insufficient, show purchase sheet
         guard profile.tryOnCredits >= 1 else {
-            errorMessage = "Not enough credits. You need 1 credit for a try-on."
-            showError = true
+            showCreditsPurchase = true
+            HapticManager.shared.buttonTap()
             return
         }
 
@@ -147,7 +205,7 @@ struct TryOnProcessView: View {
         }
 
         isProcessing = true
-        statusMessage = "Preparing your try-on..."
+        statusMessage = "Preparing your Try-On..."
         processingProgress = 0.1
 
         Task {
@@ -156,7 +214,7 @@ struct TryOnProcessView: View {
                 await updateProgress(0.3, message: "Uploading images...")
                 try await Task.sleep(nanoseconds: 500_000_000) // 0.5s
 
-                await updateProgress(0.5, message: "Generating photorealistic try-on...")
+                await updateProgress(0.5, message: "Generating photorealistic Try-On...")
 
                 // Call fal.ai API
                 let resultImage = try await FalAIService.shared.generateTryOn(

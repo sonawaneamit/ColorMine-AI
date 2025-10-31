@@ -40,7 +40,7 @@ struct FullBodyPhotoSetupView: View {
                             .font(.title)
                             .fontWeight(.bold)
 
-                        Text("To create realistic try-ons, we need a full-body photo of you")
+                        Text("To create realistic Try-Ons, we need a full-body photo of you")
                             .font(.body)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)

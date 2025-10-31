@@ -68,6 +68,22 @@ class TryOnCacheManager {
         }
     }
 
+    // MARK: - Save Try-On Video
+    /// Save a try-on video to cache
+    func saveTryOnVideo(_ videoData: Data, id: UUID = UUID()) -> URL? {
+        let filename = "tryon_video_\(id.uuidString).mp4"
+        let fileURL = cacheDirectory.appendingPathComponent(filename)
+
+        do {
+            try videoData.write(to: fileURL)
+            print("✅ Saved try-on video: \(filename) (\(videoData.count / 1024 / 1024)MB)")
+            return fileURL
+        } catch {
+            print("❌ Failed to save try-on video: \(error)")
+            return nil
+        }
+    }
+
     // MARK: - Delete Image
     /// Delete an image from cache
     func deleteImage(at url: URL) -> Bool {

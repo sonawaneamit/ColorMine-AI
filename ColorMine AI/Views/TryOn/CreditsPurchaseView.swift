@@ -103,11 +103,11 @@ struct CreditsPurchaseView: View {
                     )
                 )
 
-            Text("Get More Try-Ons")
+            Text("Get More Credits")
                 .font(.title2)
                 .fontWeight(.bold)
 
-            Text("Each try-on uses 1 credit to generate photorealistic results")
+            Text("Try-Ons cost 1 credit each • Videos cost 3 credits")
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -171,7 +171,11 @@ struct CreditsPurchaseView: View {
                 )
                 HowItWorksRow(
                     icon: "wand.and.stars",
-                    text: "Use 1 credit per try-on"
+                    text: "Use 1 credit per Try-On"
+                )
+                HowItWorksRow(
+                    icon: "video.fill",
+                    text: "Generate 8-second videos for 3 credits"
                 )
                 HowItWorksRow(
                     icon: "paintpalette.fill",
@@ -361,6 +365,10 @@ struct CreditPackCard: View {
         creditAmount // 1 credit = 1 try-on
     }
 
+    private var videoCount: Int {
+        creditAmount / 3 // 3 credits = 1 video
+    }
+
     private var savingsPercentage: Int? {
         // Calculate savings compared to 1 credit price ($6.99)
         switch creditAmount {
@@ -420,9 +428,15 @@ struct CreditPackCard: View {
                     }
 
                     if tryOnCount > 0 {
-                        Text("~\(tryOnCount) try-on\(tryOnCount == 1 ? "" : "s")")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        if videoCount > 0 {
+                            Text("~\(tryOnCount) Try-On\(tryOnCount == 1 ? "" : "s") or \(videoCount) video\(videoCount == 1 ? "" : "s")")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        } else {
+                            Text("~\(tryOnCount) Try-On\(tryOnCount == 1 ? "" : "s")")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     }
 
                     if let savings = savingsPercentage {

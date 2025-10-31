@@ -14,7 +14,8 @@ struct SavedGarmentsView: View {
     @State private var showDeleteConfirmation = false
 
     private var savedGarments: [GarmentItem] {
-        appState.currentProfile?.savedGarments ?? []
+        // Reverse order so newest garments appear first (left side of grid)
+        (appState.currentProfile?.savedGarments ?? []).reversed()
     }
 
     var body: some View {
@@ -66,7 +67,7 @@ struct SavedGarmentsView: View {
                     .font(.title3)
                     .fontWeight(.semibold)
 
-                Text("Browse stores and save items to try on")
+                Text("Browse stores and save items to Try-On")
                     .font(.body)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -89,7 +90,7 @@ struct SavedGarmentsView: View {
                         Spacer()
                     }
 
-                    Text("Tap to try on • Long press to delete")
+                    Text("Tap to Try-On • Long press to delete")
                         .font(.caption)
                         .foregroundColor(.secondary.opacity(0.8))
                 }
@@ -101,6 +102,11 @@ struct SavedGarmentsView: View {
                     GridItem(.flexible(), spacing: 12),
                     GridItem(.flexible(), spacing: 12)
                 ], spacing: 12) {
+                    // Loading card when garment is being saved
+                    if appState.isSavingGarment {
+                        LoadingGarmentCard()
+                    }
+
                     ForEach(savedGarments) { garment in
                         GarmentCard(garment: garment)
                             .onTapGesture {
@@ -222,6 +228,38 @@ struct GarmentCard: View {
                 .fill(score >= 70 ? Color.green : Color.orange)
         )
         .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
+    }
+}
+
+// MARK: - Loading Garment Card
+struct LoadingGarmentCard: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Loading placeholder
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(.systemGray6))
+                    .frame(height: 200)
+
+                VStack(spacing: 12) {
+                    ProgressView()
+                        .scaleEffect(1.2)
+
+                    Text("Saving...")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            // Store placeholder
+            HStack(spacing: 4) {
+                Image(systemName: "arrow.down.circle.fill")
+                    .font(.caption2)
+                Text("Processing")
+                    .font(.caption)
+            }
+            .foregroundColor(.purple)
+        }
     }
 }
 

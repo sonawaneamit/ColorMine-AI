@@ -11,6 +11,7 @@ import MessageUI
 
 struct SettingsView: View {
     @EnvironmentObject var appState: AppState
+    @AppStorage("appTheme") private var appTheme: String = "light"
     @State private var showMailComposer = false
     @State private var showBugReport = false
     @State private var showRestoreAlert = false
@@ -27,6 +28,34 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
+                // MARK: - Appearance Section
+                Section {
+                    Picker("Theme", selection: $appTheme) {
+                        HStack {
+                            Image(systemName: "sun.max.fill")
+                            Text("Light")
+                        }
+                        .tag("light")
+
+                        HStack {
+                            Image(systemName: "moon.fill")
+                            Text("Dark")
+                        }
+                        .tag("dark")
+
+                        HStack {
+                            Image(systemName: "circle.lefthalf.filled")
+                            Text("System")
+                        }
+                        .tag("system")
+                    }
+                    .pickerStyle(.inline)
+                } header: {
+                    Text("Appearance")
+                } footer: {
+                    Text("Choose your preferred color scheme. Light mode is the default.")
+                }
+
                 // MARK: - Purchases Section
                 Section {
                     Button(action: restorePurchases) {

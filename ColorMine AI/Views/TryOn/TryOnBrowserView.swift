@@ -16,11 +16,12 @@ struct TryOnBrowserView: View {
     let customURL: String?
 
     @State private var webView: WKWebView?
-    @State private var showSaveConfirmation = false
     @State private var isCapturing = false
+    @State private var isSaved = false
     @State private var currentURL: URL?
     @State private var isLoading = true
     @State private var estimatedProgress: Double = 0
+    @State private var showCropOverlay = false  // Show crop overlay for manual positioning
 
     init(store: Store) {
         self.store = store
@@ -82,37 +83,54 @@ struct TryOnBrowserView: View {
                     .background(Color.black.opacity(0.1))
                 }
 
-                // Floating "Add to Try-On" Button
-                VStack {
-                    Spacer()
+                // Crop Overlay for Manual Positioning
+                if showCropOverlay {
+                    CropOverlayView(
+                        onCapture: { captureFromOverlay() },
+                        onCancel: { showCropOverlay = false }
+                    )
+                }
 
-                    Button(action: captureGarment) {
-                        HStack(spacing: 8) {
-                            if isCapturing {
-                                ProgressView()
-                                    .tint(.white)
-                            } else {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.title2)
+                // Floating "Add to Try-On" Button (hidden when overlay is shown)
+                if !showCropOverlay {
+                    VStack {
+                        Spacer()
+
+                        Button(action: {
+                            if !isCapturing && !isSaved {
+                                showCropOverlay = true
                             }
-                            Text(isCapturing ? "Saving..." : "Save to Try-On")
-                                .font(.headline)
-                        }
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 14)
-                        .background(
-                            LinearGradient(
-                                colors: [.purple, .pink],
-                                startPoint: .leading,
-                                endPoint: .trailing
+                        }) {
+                            HStack(spacing: 8) {
+                                if isSaved {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.title2)
+                                } else if isCapturing {
+                                    ProgressView()
+                                        .tint(.white)
+                                } else {
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.title2)
+                                }
+                                Text(isSaved ? "Saved!" : (isCapturing ? "Saving..." : "Save to Try-On"))
+                                    .font(.headline)
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 14)
+                            .background(
+                                LinearGradient(
+                                    colors: isSaved ? [.green, .green.opacity(0.8)] : [.purple, .pink],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
                             )
-                        )
-                        .cornerRadius(30)
-                        .shadow(color: .black.opacity(0.2), radius: 10, y: 4)
+                            .cornerRadius(30)
+                            .shadow(color: .black.opacity(0.2), radius: 10, y: 4)
+                        }
+                        .disabled(isCapturing || isSaved)
+                        .padding(.bottom, 30)
                     }
-                    .disabled(isCapturing)
-                    .padding(.bottom, 30)
                 }
             }
             .navigationTitle(displayName)
@@ -145,67 +163,93 @@ struct TryOnBrowserView: View {
                     }
                 }
             }
-            .alert("Saved!", isPresented: $showSaveConfirmation) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text("This item has been saved to your try-on gallery")
-            }
         }
     }
 
-    private func captureGarment() {
+    // New function to capture from the crop overlay
+    private func captureFromOverlay() {
         guard let webView = webView else {
             print("❌ WebView not available")
             return
         }
 
-        // Immediate haptic feedback when button tapped
-        HapticManager.shared.buttonTap()
-
+        // Hide overlay and show capture progress
+        showCropOverlay = false
         isCapturing = true
+        appState.isSavingGarment = true
+
+        // Immediate haptic feedback
+        HapticManager.shared.success()
 
         // Capture current URL for product link
         let productURLString = currentURL?.absoluteString
 
-        // Take screenshot of web view
+        // Calculate the 9:16 crop frame in the center
+        let screenSize = UIScreen.main.bounds.size
+        let frameWidth = screenSize.width * 0.8  // 80% of screen width
+        let frameHeight = frameWidth * (16.0 / 9.0)  // 9:16 aspect ratio
+        let frameX = (screenSize.width - frameWidth) / 2
+        let frameY = (screenSize.height - frameHeight) / 2
+
+        let cropRect = CGRect(x: frameX, y: frameY, width: frameWidth, height: frameHeight)
+
+        // Take screenshot of the crop area
         let config = WKSnapshotConfiguration()
-        config.rect = webView.bounds
+        config.rect = cropRect
 
         webView.takeSnapshot(with: config) { image, error in
-            defer { isCapturing = false }
+
+            defer {
+                Task { @MainActor in
+                    self.isCapturing = false
+                    self.isSaved = true
+
+                    // Reset saved state after 2 seconds
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        self.isSaved = false
+                    }
+                }
+            }
 
             guard let screenshot = image, error == nil else {
                 print("❌ Failed to capture screenshot: \(error?.localizedDescription ?? "unknown")")
                 return
             }
 
-            // Save to cache
-            guard let garmentURL = TryOnCacheManager.shared.saveGarment(screenshot) else {
-                print("❌ Failed to save garment image")
-                return
-            }
+            // Optimize image resolution (max 1024px on longest side)
+            let optimizedImage = self.resizeImage(screenshot, maxDimension: 1024)
 
-            // Get profile
-            guard var profile = appState.currentProfile else {
-                print("❌ No current profile")
-                return
-            }
+            print("📐 Original size: \(Int(screenshot.size.width))x\(Int(screenshot.size.height))")
+            print("📐 Optimized size: \(Int(optimizedImage.size.width))x\(Int(optimizedImage.size.height))")
 
-            // Analyze garment color using OpenAI
-            let season = profile.season
-
-            print("🎨 Analyzing garment color with OpenAI...")
-
+            // Continue saving in background
             Task {
+                // Save to cache with optimized image
+                guard let garmentURL = TryOnCacheManager.shared.saveGarment(optimizedImage) else {
+                    print("❌ Failed to save garment image")
+                    return
+                }
+
+                // Get profile
+                guard var profile = self.appState.currentProfile else {
+                    print("❌ No current profile")
+                    return
+                }
+
+                // Analyze garment color using OpenAI
+                let season = profile.season
+
+                print("🎨 Analyzing garment color with OpenAI...")
+
                 do {
                     let analysis = try await OpenAIService.shared.analyzeGarmentColor(
-                        garmentImage: screenshot,
+                        garmentImage: optimizedImage,
                         userSeason: season
                     )
 
                     // Create garment item with OpenAI analysis
                     // If no store, try to extract domain from current URL
-                    let source = storeName ?? currentURL?.host ?? "Web"
+                    let source = self.storeName ?? self.currentURL?.host ?? "Web"
 
                     let garment = GarmentItem(
                         imageURL: garmentURL,
@@ -218,21 +262,21 @@ struct TryOnBrowserView: View {
 
                     // Add to profile
                     profile.savedGarments.append(garment)
-                    appState.saveProfile(profile)
+                    self.appState.saveProfile(profile)
 
                     print("✅ Garment saved: \(garment.id) with \(analysis.matchScore)% match")
                     print("🔗 Product URL: \(productURLString ?? "none")")
                     print("🧠 OpenAI reasoning: \(analysis.reasoning)")
 
-                    // Success haptic feedback and confirmation
+                    // Clear saving flag
                     await MainActor.run {
-                        HapticManager.shared.success()
-                        showSaveConfirmation = true
+                        self.appState.isSavingGarment = false
                     }
+
                 } catch {
                     print("❌ Failed to analyze garment color: \(error.localizedDescription)")
                     // Still save garment but without color analysis
-                    let source = storeName ?? currentURL?.host ?? "Web"
+                    let source = self.storeName ?? self.currentURL?.host ?? "Web"
                     let garment = GarmentItem(
                         imageURL: garmentURL,
                         sourceStore: source,
@@ -242,15 +286,47 @@ struct TryOnBrowserView: View {
                         colorMatchScore: nil // No score if analysis failed
                     )
                     profile.savedGarments.append(garment)
-                    appState.saveProfile(profile)
+                    self.appState.saveProfile(profile)
 
+                    print("✅ Garment saved without color analysis")
+
+                    // Clear saving flag
                     await MainActor.run {
-                        HapticManager.shared.success()
-                        showSaveConfirmation = true
+                        self.appState.isSavingGarment = false
                     }
                 }
             }
+        } // End takeSnapshot
+    }
+
+    // Helper function to resize image
+    private func resizeImage(_ image: UIImage, maxDimension: CGFloat) -> UIImage {
+        let size = image.size
+
+        // If image is already smaller than max, return original
+        if size.width <= maxDimension && size.height <= maxDimension {
+            return image
         }
+
+        // Calculate new size maintaining aspect ratio
+        let ratio = size.width / size.height
+        let newSize: CGSize
+
+        if size.width > size.height {
+            // Landscape or square
+            newSize = CGSize(width: maxDimension, height: maxDimension / ratio)
+        } else {
+            // Portrait
+            newSize = CGSize(width: maxDimension * ratio, height: maxDimension)
+        }
+
+        // Resize image
+        UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
+        image.draw(in: CGRect(origin: .zero, size: newSize))
+        let resizedImage = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+
+        return resizedImage ?? image
     }
 }
 
@@ -297,9 +373,12 @@ struct WebView: UIViewRepresentable {
         webView.isOpaque = true
         webView.backgroundColor = .systemBackground
 
-        // Enable scrolling for full page content
+        // Enable scrolling and zooming for full page content
         webView.scrollView.isScrollEnabled = true
         webView.scrollView.bounces = true
+        webView.scrollView.minimumZoomScale = 1.0
+        webView.scrollView.maximumZoomScale = 5.0
+        webView.scrollView.bouncesZoom = true
 
         // Set user agent to desktop Safari for full website experience
         webView.customUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"
@@ -408,6 +487,96 @@ struct WebView: UIViewRepresentable {
             print("🌐 [Navigation] Deciding policy for: \(navigationAction.request.url?.absoluteString ?? "unknown")")
             decisionHandler(.allow)
         }
+    }
+}
+
+// MARK: - Crop Overlay View
+struct CropOverlayView: View {
+    let onCapture: () -> Void
+    let onCancel: () -> Void
+
+    var body: some View {
+        ZStack {
+            // Semi-transparent overlay outside crop area
+            Color.black.opacity(0.7)
+                .ignoresSafeArea()
+
+            // Crop frame (9:16 aspect ratio)
+            GeometryReader { geometry in
+                let frameWidth = geometry.size.width * 0.8
+                let frameHeight = frameWidth * (16.0 / 9.0)
+
+                ZStack {
+                    // Clear center area showing the crop frame
+                    Rectangle()
+                        .frame(width: frameWidth, height: frameHeight)
+                        .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+                        .blendMode(.destinationOut)
+
+                    // Border around the crop frame
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.white, lineWidth: 3)
+                        .frame(width: frameWidth, height: frameHeight)
+                        .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+                }
+            }
+
+            VStack {
+                // Instructions at top
+                VStack(spacing: 12) {
+                    Text("Position Your Product")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+
+                    Text("Zoom and pan to fit the product within the frame")
+                        .font(.subheadline)
+                        .foregroundColor(.white.opacity(0.9))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 40)
+                }
+                .padding(.top, 60)
+
+                Spacer()
+
+                // Action buttons at bottom
+                HStack(spacing: 20) {
+                    // Cancel button
+                    Button(action: onCancel) {
+                        Text("Cancel")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(Color.gray.opacity(0.5))
+                            .cornerRadius(12)
+                    }
+
+                    // Capture button
+                    Button(action: onCapture) {
+                        HStack {
+                            Image(systemName: "camera.fill")
+                            Text("Capture")
+                                .font(.headline)
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(
+                            LinearGradient(
+                                colors: [.purple, .pink],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .cornerRadius(12)
+                    }
+                }
+                .padding(.horizontal, 30)
+                .padding(.bottom, 50)
+            }
+        }
+        .compositingGroup()
     }
 }
 

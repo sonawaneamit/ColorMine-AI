@@ -30,6 +30,9 @@ struct StoreGridView: View {
     @State private var browserContent: BrowserContent?
     @State private var showURLInput = false
     @State private var urlInputText = ""
+    @State private var showImagePicker = false
+    @State private var imageSourceType: UIImagePickerController.SourceType = .photoLibrary
+    @State private var selectedGarmentImage: UIImage?
 
     private let stores = Store.predefinedStores
 
@@ -42,6 +45,32 @@ struct StoreGridView: View {
                     .foregroundColor(.secondary)
                     .padding(.horizontal)
                     .padding(.top, 8)
+
+                // Quick Actions Grid (Camera & Photo Library)
+                HStack(spacing: 12) {
+                    // Take Photo Card
+                    QuickActionCard(
+                        icon: "camera.fill",
+                        title: "Take Photo",
+                        subtitle: "From a store",
+                        gradientColors: [.orange, .red]
+                    ) {
+                        imageSourceType = .camera
+                        showImagePicker = true
+                    }
+
+                    // Photo Library Card
+                    QuickActionCard(
+                        icon: "photo.fill",
+                        title: "Photo Library",
+                        subtitle: "Saved images",
+                        gradientColors: [.blue, .purple]
+                    ) {
+                        imageSourceType = .photoLibrary
+                        showImagePicker = true
+                    }
+                }
+                .padding(.horizontal)
 
                 // Enter Custom URL Card
                 CustomURLCard {
@@ -117,6 +146,81 @@ struct StoreGridView: View {
                 print("🌐 [StoreGrid] browserContent set with custom URL")
             }
         }
+        .sheet(isPresented: $showImagePicker) {
+            GarmentImagePicker(image: $selectedGarmentImage, sourceType: imageSourceType)
+        }
+        .onChange(of: selectedGarmentImage) { oldValue, newValue in
+            if let image = newValue {
+                saveGarmentFromImage(image)
+            }
+        }
+    }
+
+    private func saveGarmentFromImage(_ image: UIImage) {
+        Task {
+            guard let imageData = image.jpegData(compressionQuality: 0.8) else { return }
+
+            // Save to cache
+            guard let garmentURL = TryOnCacheManager.shared.saveGarment(image) else {
+                print("❌ Failed to save garment image")
+                return
+            }
+
+            // Get profile
+            guard var profile = appState.currentProfile else {
+                print("❌ No current profile")
+                return
+            }
+
+            // Analyze garment color using OpenAI
+            let season = profile.season
+
+            print("🎨 Analyzing garment color with OpenAI...")
+
+            do {
+                let analysis = try await OpenAIService.shared.analyzeGarmentColor(
+                    garmentImage: image,
+                    userSeason: season
+                )
+
+                // Create garment item
+                let garment = GarmentItem(
+                    imageURL: garmentURL,
+                    sourceStore: "Photo",
+                    productURL: nil,
+                    dominantColorHex: nil,
+                    matchesUserSeason: analysis.matchScore >= 70,
+                    colorMatchScore: analysis.matchScore
+                )
+
+                // Add to profile
+                profile.savedGarments.append(garment)
+                appState.saveProfile(profile)
+
+                print("✅ Garment saved from photo: \(garment.id) with \(analysis.matchScore)% match")
+
+                // Haptic feedback
+                await MainActor.run {
+                    HapticManager.shared.success()
+                }
+
+            } catch {
+                print("❌ Failed to analyze garment color: \(error.localizedDescription)")
+                // Still save garment but without color analysis
+                let garment = GarmentItem(
+                    imageURL: garmentURL,
+                    sourceStore: "Photo",
+                    productURL: nil,
+                    dominantColorHex: nil,
+                    matchesUserSeason: false,
+                    colorMatchScore: nil
+                )
+                profile.savedGarments.append(garment)
+                appState.saveProfile(profile)
+
+                print("✅ Garment saved from photo without color analysis")
+            }
+        }
     }
 }
 
@@ -176,6 +280,51 @@ struct StoreCard: View {
         case .sustainable:
             return [.teal, .green]
         }
+    }
+}
+
+// MARK: - Quick Action Card (Camera/Photo Library)
+struct QuickActionCard: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+    let gradientColors: [Color]
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 12) {
+                // Icon
+                ZStack {
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(
+                            LinearGradient(
+                                colors: gradientColors,
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(height: 100)
+
+                    Image(systemName: icon)
+                        .font(.system(size: 35))
+                        .foregroundColor(.white)
+                }
+
+                // Labels
+                VStack(spacing: 2) {
+                    Text(title)
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
+
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -285,6 +434,48 @@ struct URLInputSheet: View {
 
         onSubmit(finalURL)
         dismiss()
+    }
+}
+
+// MARK: - Garment Image Picker
+struct GarmentImagePicker: UIViewControllerRepresentable {
+    @Binding var image: UIImage?
+    let sourceType: UIImagePickerController.SourceType
+    @Environment(\.dismiss) private var dismiss
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = sourceType
+        picker.delegate = context.coordinator
+        picker.allowsEditing = true
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let parent: GarmentImagePicker
+
+        init(_ parent: GarmentImagePicker) {
+            self.parent = parent
+        }
+
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+            if let editedImage = info[.editedImage] as? UIImage {
+                parent.image = editedImage
+            } else if let originalImage = info[.originalImage] as? UIImage {
+                parent.image = originalImage
+            }
+            parent.dismiss()
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            parent.dismiss()
+        }
     }
 }
 

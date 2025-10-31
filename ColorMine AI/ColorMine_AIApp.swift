@@ -6,10 +6,12 @@
 //
 
 import SwiftUI
+import UserNotifications
 
 @main
 struct ColorMine_AIApp: App {
     @StateObject private var appState = AppState()
+    @AppStorage("appTheme") private var appTheme: String = "light"
 
     var body: some Scene {
         WindowGroup {
@@ -21,6 +23,18 @@ struct ColorMine_AIApp: App {
                     }
             }
             .id(appState.navigationResetID)  // Reset navigation when retaking selfie
+            .preferredColorScheme(colorScheme)
+        }
+    }
+
+    private var colorScheme: ColorScheme? {
+        switch appTheme {
+        case "light":
+            return .light
+        case "dark":
+            return .dark
+        default:
+            return nil  // System default
         }
     }
 }
@@ -61,6 +75,19 @@ struct RootView: View {
             } else {
                 // Show scan view if subscribed but no profile
                 ScanView()
+            }
+        }
+        .onAppear {
+            requestNotificationPermissions()
+        }
+    }
+
+    private func requestNotificationPermissions() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+            if granted {
+                print("✅ Notification permissions granted")
+            } else if let error = error {
+                print("❌ Notification permission error: \(error)")
             }
         }
     }

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UserNotifications
 
 struct TryOnResultView: View {
     @EnvironmentObject var appState: AppState
@@ -16,46 +17,100 @@ struct TryOnResultView: View {
     @State private var resultImage: UIImage?
     @State private var showShareSheet = false
     @State private var showColorAnalysis = true
+    @State private var isGeneratingVideo = false
+    @State private var showVideoPlayer = false
+    @State private var showCreditsPurchase = false
+    @State private var showFullScreenImage = false
+    @State private var generatedVideoURL: URL? // Track generated video URL
 
     private var userProfile: UserProfile? {
         appState.currentProfile
     }
 
+    private var hasVideo: Bool {
+        generatedVideoURL != nil || result.videoURL != nil
+    }
+
+    private var videoURL: URL? {
+        generatedVideoURL ?? result.videoURL
+    }
+
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Result Image
-                    if let image = resultImage {
-                        ZStack(alignment: .topTrailing) {
-                            Image(uiImage: image)
-                                .resizable()
-                                .scaledToFit()
-                                .cornerRadius(16)
-                                .shadow(color: .black.opacity(0.1), radius: 10)
+            ZStack(alignment: .top) {
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Result Image
+                        if let image = resultImage {
+                            ZStack(alignment: .topTrailing) {
+                                Image(uiImage: image)
+                                    .resizable()
+                                    .scaledToFit()
+                                    .cornerRadius(16)
+                                    .shadow(color: .black.opacity(0.1), radius: 10)
+                                    .onTapGesture {
+                                        showFullScreenImage = true
+                                    }
 
-                            // Color analysis toggle
-                            Button(action: {
-                                withAnimation {
-                                    showColorAnalysis.toggle()
+                                // Top-right buttons
+                                HStack(spacing: 12) {
+                                    // Video generation button with cost indicator
+                                    Button(action: generateVideo) {
+                                        VStack(spacing: 4) {
+                                            if isGeneratingVideo {
+                                                ProgressView()
+                                                    .tint(.white)
+                                            } else if hasVideo {
+                                                Image(systemName: "play.circle.fill")
+                                                    .font(.title2)
+                                            } else {
+                                                Image(systemName: "video.badge.plus")
+                                                    .font(.title2)
+                                            }
+
+                                            if !hasVideo && !isGeneratingVideo {
+                                                Text("3 credits")
+                                                    .font(.caption2)
+                                                    .fontWeight(.semibold)
+                                            } else if hasVideo && !isGeneratingVideo {
+                                                Text("Play")
+                                                    .font(.caption2)
+                                                    .fontWeight(.semibold)
+                                            }
+                                        }
+                                        .foregroundColor(.white)
+                                        .padding(10)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .fill(hasVideo ? Color.green.opacity(0.9) : Color.purple.opacity(0.9))
+                                        )
+                                    }
+                                    .disabled(isGeneratingVideo)
+
+                                    // Color analysis toggle
+                                    Button(action: {
+                                        withAnimation {
+                                            showColorAnalysis.toggle()
+                                        }
+                                    }) {
+                                        Image(systemName: showColorAnalysis ? "eye.fill" : "eye.slash.fill")
+                                            .font(.title3)
+                                            .foregroundColor(.white)
+                                            .padding(12)
+                                            .background(Circle().fill(.black.opacity(0.5)))
+                                    }
                                 }
-                            }) {
-                                Image(systemName: showColorAnalysis ? "eye.fill" : "eye.slash.fill")
-                                    .font(.title3)
-                                    .foregroundColor(.white)
-                                    .padding(12)
-                                    .background(Circle().fill(.black.opacity(0.5)))
+                                .padding()
                             }
-                            .padding()
+                        } else {
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color(.systemGray5))
+                                .frame(height: 400)
+                                .overlay {
+                                    ProgressView()
+                                }
                         }
-                    } else {
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(Color(.systemGray5))
-                            .frame(height: 400)
-                            .overlay {
-                                ProgressView()
-                            }
-                    }
+
 
                     // Color Analysis Section (if enabled)
                     if showColorAnalysis, let profile = userProfile {
@@ -78,6 +133,44 @@ struct TryOnResultView: View {
                 .padding()
             }
             .background(Color(.systemGroupedBackground))
+
+            // Floating video generation notification banner
+            if isGeneratingVideo {
+                VStack {
+                    HStack(spacing: 12) {
+                        Image(systemName: "bell.badge.fill")
+                            .foregroundColor(.white)
+                            .font(.title3)
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Video Generating...")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+
+                            Text("Feel free to leave. We'll notify you when your video is ready!")
+                                .font(.caption)
+                                .foregroundColor(.white.opacity(0.9))
+                        }
+
+                        Spacer()
+                    }
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.purple.opacity(0.95))
+                            .shadow(color: .black.opacity(0.2), radius: 10, y: 5)
+                    )
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+
+                    Spacer()
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isGeneratingVideo)
+                .zIndex(1) // Ensure it appears above ScrollView content
+            }
+        }
             .navigationTitle("Try-On Result")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -98,9 +191,26 @@ struct TryOnResultView: View {
                     ShareSheet(items: [watermarkedImage])
                 }
             }
+            .fullScreenCover(isPresented: $showVideoPlayer) {
+                if let url = videoURL {
+                    VideoPlayerView(videoURL: url)
+                }
+            }
+            .fullScreenCover(isPresented: $showFullScreenImage) {
+                if let image = resultImage {
+                    ZoomableImageView(image: image)
+                }
+            }
+            .sheet(isPresented: $showCreditsPurchase) {
+                CreditsPurchaseView()
+            }
         }
         .onAppear {
             loadResultImage()
+            // Initialize video URL if already exists
+            if let existingVideoURL = result.videoURL {
+                generatedVideoURL = existingVideoURL
+            }
         }
     }
 
@@ -284,6 +394,98 @@ struct TryOnResultView: View {
         }
     }
 
+    private func generateVideo() {
+        // If video already exists, play it
+        if hasVideo {
+            showVideoPlayer = true
+            return
+        }
+
+        // Check if user has enough credits (3 credits for video)
+        guard var profile = appState.currentProfile else { return }
+
+        guard profile.tryOnCredits >= 3 else {
+            // Show purchase sheet to get more credits
+            showCreditsPurchase = true
+            return
+        }
+
+        // Start video generation
+        guard let image = resultImage else { return }
+
+        isGeneratingVideo = true
+        HapticManager.shared.buttonTap()
+
+        Task {
+            do {
+                // Generate video using fal.ai Veo 3.1
+                let videoData = try await FalAIService.shared.generateTryOnVideo(
+                    tryOnImage: image
+                )
+
+                // Save video to cache
+                guard let videoURL = TryOnCacheManager.shared.saveTryOnVideo(videoData) else {
+                    throw TryOnError.failedToSave
+                }
+
+                // Update result with video URL
+                var updatedResult = result
+                updatedResult.videoURL = videoURL
+                updatedResult.videoCreditsUsed = 3
+
+                // Deduct credits
+                profile.tryOnCredits -= 3
+
+                // Update the try-on history with video URL
+                if let index = profile.tryOnHistory.firstIndex(where: { $0.id == result.id }) {
+                    profile.tryOnHistory[index] = updatedResult
+                }
+
+                appState.saveProfile(profile)
+
+                print("✅ Video generated and saved! Credits remaining: \(profile.tryOnCredits)")
+
+                // Send notification
+                sendVideoReadyNotification()
+
+                await MainActor.run {
+                    generatedVideoURL = videoURL // Set the generated video URL
+                    isGeneratingVideo = false
+                    HapticManager.shared.success()
+                    showVideoPlayer = true // Autoplay
+                }
+
+            } catch {
+                print("❌ Video generation failed: \(error.localizedDescription)")
+                await MainActor.run {
+                    isGeneratingVideo = false
+                    HapticManager.shared.error()
+                }
+            }
+        }
+    }
+
+    private func sendVideoReadyNotification() {
+        let content = UNMutableNotificationContent()
+        content.title = "Try-On Video Ready!"
+        content.body = "Your 8-second Try-On video is ready to watch"
+        content.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: UUID().uuidString,
+            content: content,
+            trigger: nil // Immediate
+        )
+
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                print("❌ Failed to send notification: \(error)")
+            } else {
+                print("✅ Video ready notification sent")
+            }
+        }
+    }
+
     private func addWatermark(to image: UIImage) -> UIImage? {
         let renderer = UIGraphicsImageRenderer(size: image.size)
 
@@ -409,6 +611,189 @@ struct ColorAnalysisRow: View {
     }
 }
 
+// MARK: - Video Player View
+import AVKit
+import Photos
+
+struct VideoPlayerView: View {
+    @Environment(\.dismiss) private var dismiss
+    let videoURL: URL
+    @State private var player: AVPlayer?
+    @State private var showSaveSuccess = false
+    @State private var showSaveError = false
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            if let player = player {
+                VideoPlayer(player: player)
+                    .edgesIgnoringSafeArea(.all)
+            }
+
+            // Top buttons
+            HStack {
+                // Close button
+                Button(action: { dismiss() }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title)
+                        .foregroundColor(.white)
+                        .padding()
+                        .background(Circle().fill(.black.opacity(0.5)))
+                }
+
+                Spacer()
+
+                // Save to camera roll button
+                Button(action: saveVideoToCameraRoll) {
+                    Image(systemName: "square.and.arrow.down.fill")
+                        .font(.title)
+                        .foregroundColor(.white)
+                        .padding()
+                        .background(Circle().fill(.black.opacity(0.5)))
+                }
+            }
+            .padding()
+        }
+        .alert("Video Saved!", isPresented: $showSaveSuccess) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Your Try-On video has been saved to your photo library")
+        }
+        .alert("Save Failed", isPresented: $showSaveError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Couldn't save video. Please check photo library permissions in Settings.")
+        }
+        .onAppear {
+            // Create player and autoplay
+            let newPlayer = AVPlayer(url: videoURL)
+            player = newPlayer
+            newPlayer.play() // Autoplay
+        }
+        .onDisappear {
+            player?.pause()
+        }
+    }
+
+    private func saveVideoToCameraRoll() {
+        // Check photo library authorization
+        PHPhotoLibrary.requestAuthorization { status in
+            guard status == .authorized || status == .limited else {
+                DispatchQueue.main.async {
+                    showSaveError = true
+                }
+                return
+            }
+
+            // Save video to photo library
+            PHPhotoLibrary.shared().performChanges({
+                PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: videoURL)
+            }) { success, error in
+                DispatchQueue.main.async {
+                    if success {
+                        showSaveSuccess = true
+                        HapticManager.shared.success()
+                        print("✅ Video saved to camera roll")
+                    } else {
+                        showSaveError = true
+                        HapticManager.shared.error()
+                        print("❌ Failed to save video: \(error?.localizedDescription ?? "unknown")")
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Zoomable Image View
+struct ZoomableImageView: View {
+    @Environment(\.dismiss) private var dismiss
+    let image: UIImage
+
+    @State private var scale: CGFloat = 1.0
+    @State private var lastScale: CGFloat = 1.0
+    @State private var offset: CGSize = .zero
+    @State private var lastOffset: CGSize = .zero
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            Color.black
+                .edgesIgnoringSafeArea(.all)
+
+            // Zoomable Image
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFit()
+                .scaleEffect(scale)
+                .offset(offset)
+                .gesture(
+                    MagnificationGesture()
+                        .onChanged { value in
+                            let delta = value / lastScale
+                            lastScale = value
+                            scale = min(max(scale * delta, 1), 4) // Limit zoom between 1x and 4x
+                        }
+                        .onEnded { _ in
+                            lastScale = 1.0
+                            // Reset to normal if zoomed out too much
+                            if scale < 1 {
+                                withAnimation(.spring()) {
+                                    scale = 1
+                                    offset = .zero
+                                }
+                            }
+                        }
+                )
+                .simultaneousGesture(
+                    DragGesture()
+                        .onChanged { value in
+                            if scale > 1 {
+                                offset = CGSize(
+                                    width: lastOffset.width + value.translation.width,
+                                    height: lastOffset.height + value.translation.height
+                                )
+                            }
+                        }
+                        .onEnded { _ in
+                            lastOffset = offset
+                        }
+                )
+                .onTapGesture(count: 2) {
+                    // Double tap to reset zoom
+                    withAnimation(.spring()) {
+                        scale = 1
+                        offset = .zero
+                        lastOffset = .zero
+                    }
+                }
+
+            // Close button
+            Button(action: { dismiss() }) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title)
+                    .foregroundColor(.white)
+                    .padding()
+                    .background(Circle().fill(.black.opacity(0.5)))
+            }
+            .padding()
+
+            // Zoom instructions
+            VStack {
+                Spacer()
+                Text("Pinch to zoom • Drag to pan • Double-tap to reset")
+                    .font(.caption)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(
+                        Capsule()
+                            .fill(.black.opacity(0.6))
+                    )
+                    .padding(.bottom, 40)
+            }
+        }
+    }
+}
+
 #Preview {
     TryOnResultView(result: TryOnResult(
         id: UUID(),
@@ -419,7 +804,7 @@ struct ColorAnalysisRow: View {
         ),
         resultImageURL: URL(fileURLWithPath: "/tmp/result.png"),
         createdAt: Date(),
-        creditsUsed: 3
+        creditsUsed: 1
     ))
     .environmentObject(AppState())
 }

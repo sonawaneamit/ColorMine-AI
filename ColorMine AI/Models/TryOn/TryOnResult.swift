@@ -13,19 +13,25 @@ struct TryOnResult: Identifiable, Codable, Equatable {
     let resultImageURL: URL     // Local cached fal.ai result
     let createdAt: Date
     let creditsUsed: Int
+    var videoURL: URL?           // Optional video result (costs 3 additional credits)
+    var videoCreditsUsed: Int?   // Track video generation cost separately
 
     init(
         id: UUID = UUID(),
         garmentItem: GarmentItem,
         resultImageURL: URL,
         createdAt: Date = Date(),
-        creditsUsed: Int = 3
+        creditsUsed: Int = 1,
+        videoURL: URL? = nil,
+        videoCreditsUsed: Int? = nil
     ) {
         self.id = id
         self.garmentItem = garmentItem
         self.resultImageURL = resultImageURL
         self.createdAt = createdAt
         self.creditsUsed = creditsUsed
+        self.videoURL = videoURL
+        self.videoCreditsUsed = videoCreditsUsed
     }
 
     // Helper to check if result is recent
