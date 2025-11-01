@@ -8,7 +8,7 @@
 import Foundation
 import SwiftUI
 
-struct GarmentItem: Identifiable, Codable, Equatable {
+struct GarmentItem: Identifiable, Codable, Equatable, Hashable {
     let id: UUID
     let imageURL: URL          // Local file path
     let sourceStore: String?   // "ASOS", "H&M", etc.

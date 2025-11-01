@@ -12,7 +12,7 @@ struct ProfileDashboardView: View {
 
     @State private var selectedTab = 0
     @State private var selectedPack: PackDetailType?
-    @State private var showRegenerateOptions = false
+    @State private var showStartOverOptions = false
 
     // Use computed property to always get current profile from appState
     private var profile: UserProfile {
@@ -45,16 +45,6 @@ struct ProfileDashboardView: View {
                             Label("Home", systemImage: "house.fill")
                         }
                         .tag(0)
-                        .toolbar {
-                            ToolbarItem(placement: .navigationBarTrailing) {
-                                Button(action: {
-                                    showRegenerateOptions = true
-                                }) {
-                                    Image(systemName: "arrow.triangle.2.circlepath")
-                                        .foregroundColor(.purple)
-                                }
-                            }
-                        }
 
                     // History Tab
                     HistoryView()
@@ -81,21 +71,35 @@ struct ProfileDashboardView: View {
                         .tag(3)
                 }
                 .navigationBarBackButtonHidden(true)
+                .toolbar {
+                    // Show "Start Over" button only on Home and Try-On tabs
+                    if selectedTab == 0 || selectedTab == 2 {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button(action: {
+                                showStartOverOptions = true
+                            }) {
+                                Text("Start Over")
+                                    .font(.body)
+                                    .foregroundColor(.purple)
+                            }
+                        }
+                    }
+                }
                 .navigationDestination(item: $selectedPack) { packType in
                     PackDetailView(profile: profile, packType: packType)
                         .environmentObject(appState)
                         .navigationBarBackButtonHidden(false)
                 }
-                .confirmationDialog("Update Your Guide", isPresented: $showRegenerateOptions) {
-                    Button("Switch to a different color") {
+                .confirmationDialog("Start Over", isPresented: $showStartOverOptions) {
+                    Button("Choose a new focus color") {
                         regenerateFromFocusColor()
                     }
-                    Button("Start fresh with a new photo") {
+                    Button("Retake selfie and start fresh") {
                         retakeSelfie()
                     }
                     Button("Cancel", role: .cancel) {}
                 } message: {
-                    Text("What would you like to change?")
+                    Text("What would you like to do?")
                 }
                 .onAppear {
                     // Clear notification badge when viewing dashboard
@@ -108,7 +112,7 @@ struct ProfileDashboardView: View {
     // MARK: - Regenerate from Focus Color
     private func regenerateFromFocusColor() {
         var updatedProfile = profile
-        // Clear focus color and all generated packs (keep drapes)
+        // Clear focus color and all generated packs (keep selfie and draping results)
         updatedProfile.focusColor = nil
         updatedProfile.hasChosenPacks = false
         updatedProfile.texturePackImageURL = nil
@@ -231,7 +235,7 @@ struct ProfileTab: View {
                                 .foregroundColor(.purple.opacity(0.5))
                             Text("Your personalized guide is being created")
                                 .font(.headline)
-                            Text("This is worth the wait — usually 2-3 minutes")
+                            Text("This is worth the wait — up to 60 seconds")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                         }
@@ -531,7 +535,7 @@ struct TryOnTab: View {
             }
             .navigationTitle("Try-On")
             .navigationBarTitleDisplayMode(.large)
-            .sheet(isPresented: $showSetup) {
+            .fullScreenCover(isPresented: $showSetup) {
                 NavigationStack {
                     FullBodyPhotoSetupView()
                         .environmentObject(appState)
@@ -543,29 +547,35 @@ struct TryOnTab: View {
                         .environmentObject(appState)
                 }
             }
-            .sheet(isPresented: $showSavedGarments) {
+            .fullScreenCover(isPresented: $showSavedGarments) {
                 NavigationStack {
                     SavedGarmentsView()
                         .environmentObject(appState)
                 }
             }
-            .sheet(isPresented: $showCreditsPurchase) {
-                CreditsPurchaseView()
-                    .environmentObject(appState)
+            .fullScreenCover(isPresented: $showCreditsPurchase) {
+                NavigationStack {
+                    CreditsPurchaseView()
+                        .environmentObject(appState)
+                }
             }
-            .sheet(item: $selectedGarment) { garment in
-                TryOnProcessView(garment: garment)
-                    .environmentObject(appState)
+            .fullScreenCover(item: $selectedGarment) { garment in
+                NavigationStack {
+                    TryOnProcessView(garment: garment)
+                        .environmentObject(appState)
+                }
             }
             .fullScreenCover(item: $selectedResult) { result in
                 TryOnResultView(result: result)
                     .environmentObject(appState)
             }
-            .sheet(isPresented: $showRetakeSelfie) {
+            .fullScreenCover(isPresented: $showRetakeSelfie) {
                 ImagePicker(image: $newSelfieImage, sourceType: .photoLibrary)
+                    .ignoresSafeArea()
             }
-            .sheet(isPresented: $showRetakeFullBody) {
+            .fullScreenCover(isPresented: $showRetakeFullBody) {
                 FullBodyImagePicker(image: $newFullBodyImage, sourceType: .photoLibrary)
+                    .ignoresSafeArea()
             }
             .onChange(of: newSelfieImage) { _, newImage in
                 if let image = newImage, var currentProfile = profile {
@@ -669,7 +679,7 @@ struct TryOnTab: View {
 
     // MARK: - Credits Balance Card
     private var creditsBalanceCard: some View {
-        HStack {
+        VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Your Credits")
                     .font(.subheadline)
@@ -684,18 +694,16 @@ struct TryOnTab: View {
                     .foregroundColor(.secondary)
             }
 
-            Spacer()
-
             Button(action: { showCreditsPurchase = true }) {
                 HStack(spacing: 6) {
                     Image(systemName: "plus.circle.fill")
-                    Text("Buy")
+                    Text("Buy Credits")
                 }
                 .font(.subheadline)
                 .fontWeight(.semibold)
                 .foregroundColor(.white)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
                 .background(
                     LinearGradient(
                         colors: [.purple, .pink],
@@ -823,7 +831,7 @@ struct TryOnTab: View {
                 .padding(.horizontal, 4)
 
             HStack(spacing: 12) {
-                QuickActionCard(
+                DashboardQuickActionCard(
                     icon: "bag.fill",
                     title: "Browse Stores",
                     color: .purple
@@ -831,7 +839,7 @@ struct TryOnTab: View {
                     showStoreGrid = true
                 }
 
-                QuickActionCard(
+                DashboardQuickActionCard(
                     icon: "photo.fill",
                     title: "My Garments",
                     color: .pink
@@ -912,8 +920,8 @@ private struct SimpleFeatureRow: View {
     }
 }
 
-// MARK: - Quick Action Card
-private struct QuickActionCard: View {
+// MARK: - Dashboard Quick Action Card
+private struct DashboardQuickActionCard: View {
     let icon: String
     let title: String
     let color: Color

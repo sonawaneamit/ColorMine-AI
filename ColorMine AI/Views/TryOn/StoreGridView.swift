@@ -6,9 +6,10 @@
 //
 
 import SwiftUI
+import AVFoundation
 
 // MARK: - Browser Content (to fix state timing issue)
-struct BrowserContent: Identifiable {
+struct BrowserContent: Identifiable, Hashable {
     let id = UUID()
     let store: Store?
     let customURL: String?
@@ -22,16 +23,22 @@ struct BrowserContent: Identifiable {
         self.store = nil
         self.customURL = customURL
     }
+
+    // Hashable conformance
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+
+    static func == (lhs: BrowserContent, rhs: BrowserContent) -> Bool {
+        lhs.id == rhs.id
+    }
 }
 
 struct StoreGridView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) private var dismiss
     @State private var browserContent: BrowserContent?
-    @State private var showURLInput = false
-    @State private var urlInputText = ""
-    @State private var showImagePicker = false
-    @State private var imageSourceType: UIImagePickerController.SourceType = .photoLibrary
+    @State private var imagePickerSource: UIImagePickerController.SourceType?
     @State private var selectedGarmentImage: UIImage?
 
     private let stores = Store.predefinedStores
@@ -55,8 +62,7 @@ struct StoreGridView: View {
                         subtitle: "From a store",
                         gradientColors: [.orange, .red]
                     ) {
-                        imageSourceType = .camera
-                        showImagePicker = true
+                        checkCameraPermissionAndOpen()
                     }
 
                     // Photo Library Card
@@ -66,15 +72,15 @@ struct StoreGridView: View {
                         subtitle: "Saved images",
                         gradientColors: [.blue, .purple]
                     ) {
-                        imageSourceType = .photoLibrary
-                        showImagePicker = true
+                        imagePickerSource = .photoLibrary
                     }
                 }
                 .padding(.horizontal)
 
                 // Enter Custom URL Card
                 CustomURLCard {
-                    showURLInput = true
+                    // Open browser with Google (blank slate for browsing)
+                    browserContent = BrowserContent(customURL: "https://www.google.com")
                 }
                 .padding(.horizontal)
 
@@ -102,9 +108,7 @@ struct StoreGridView: View {
                 ], spacing: 16) {
                     ForEach(stores) { store in
                         StoreCard(store: store) {
-                            print("🛍️ [StoreGrid] Store tapped: \(store.name), URL: \(store.url)")
                             browserContent = BrowserContent(store: store)
-                            print("🛍️ [StoreGrid] browserContent set with store: \(store.name)")
                         }
                     }
                 }
@@ -117,37 +121,28 @@ struct StoreGridView: View {
         .navigationTitle("Shop Your Colors")
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button("Done") {
-                    dismiss()
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button(action: { dismiss() }) {
+                    Image(systemName: "xmark")
+                        .font(.body)
+                        .foregroundColor(.primary)
                 }
             }
         }
-        .sheet(item: $browserContent) { content in
+        .navigationDestination(item: $browserContent) { content in
             Group {
                 if let store = content.store {
-                    let _ = print("🎬 [StoreGrid] sheet presenting store: \(store.name)")
                     TryOnBrowserView(store: store)
                         .environmentObject(appState)
                 } else if let url = content.customURL {
-                    let _ = print("🎬 [StoreGrid] sheet presenting custom URL: \(url)")
                     TryOnBrowserView(customURL: url)
                         .environmentObject(appState)
                 }
             }
-            .presentationDetents([.large])
-            .presentationDragIndicator(.hidden)
-            .interactiveDismissDisabled()
         }
-        .sheet(isPresented: $showURLInput) {
-            URLInputSheet(urlText: $urlInputText) { url in
-                print("🌐 [StoreGrid] Custom URL submitted: \(url)")
-                browserContent = BrowserContent(customURL: url)
-                print("🌐 [StoreGrid] browserContent set with custom URL")
-            }
-        }
-        .sheet(isPresented: $showImagePicker) {
-            GarmentImagePicker(image: $selectedGarmentImage, sourceType: imageSourceType)
+        .fullScreenCover(item: $imagePickerSource) { sourceType in
+            GarmentImagePicker(image: $selectedGarmentImage, sourceType: sourceType)
+                .ignoresSafeArea()
         }
         .onChange(of: selectedGarmentImage) { oldValue, newValue in
             if let image = newValue {
@@ -158,68 +153,73 @@ struct StoreGridView: View {
 
     private func saveGarmentFromImage(_ image: UIImage) {
         Task {
-            guard let imageData = image.jpegData(compressionQuality: 0.8) else { return }
-
             // Save to cache
             guard let garmentURL = TryOnCacheManager.shared.saveGarment(image) else {
-                print("❌ Failed to save garment image")
                 return
             }
 
             // Get profile
             guard var profile = appState.currentProfile else {
-                print("❌ No current profile")
                 return
             }
 
-            // Analyze garment color using OpenAI
-            let season = profile.season
+            // Create garment item WITHOUT color analysis (will analyze on try-on)
+            let garment = GarmentItem(
+                imageURL: garmentURL,
+                sourceStore: "Photo",
+                productURL: nil,
+                dominantColorHex: nil,
+                matchesUserSeason: false,  // Will be analyzed during try-on
+                colorMatchScore: nil  // Will be analyzed during try-on
+            )
 
-            print("🎨 Analyzing garment color with OpenAI...")
+            // Add to profile and save immediately
+            profile.savedGarments.append(garment)
+            appState.saveProfile(profile)
 
-            do {
-                let analysis = try await OpenAIService.shared.analyzeGarmentColor(
-                    garmentImage: image,
-                    userSeason: season
-                )
-
-                // Create garment item
-                let garment = GarmentItem(
-                    imageURL: garmentURL,
-                    sourceStore: "Photo",
-                    productURL: nil,
-                    dominantColorHex: nil,
-                    matchesUserSeason: analysis.matchScore >= 70,
-                    colorMatchScore: analysis.matchScore
-                )
-
-                // Add to profile
-                profile.savedGarments.append(garment)
-                appState.saveProfile(profile)
-
-                print("✅ Garment saved from photo: \(garment.id) with \(analysis.matchScore)% match")
-
-                // Haptic feedback
-                await MainActor.run {
-                    HapticManager.shared.success()
-                }
-
-            } catch {
-                print("❌ Failed to analyze garment color: \(error.localizedDescription)")
-                // Still save garment but without color analysis
-                let garment = GarmentItem(
-                    imageURL: garmentURL,
-                    sourceStore: "Photo",
-                    productURL: nil,
-                    dominantColorHex: nil,
-                    matchesUserSeason: false,
-                    colorMatchScore: nil
-                )
-                profile.savedGarments.append(garment)
-                appState.saveProfile(profile)
-
-                print("✅ Garment saved from photo without color analysis")
+            // Haptic feedback
+            await MainActor.run {
+                HapticManager.shared.success()
             }
+        }
+    }
+
+    private func checkCameraPermissionAndOpen() {
+        // Check if camera is available (fails on Simulator)
+        #if targetEnvironment(simulator)
+        imagePickerSource = .photoLibrary
+        return
+        #endif
+
+        // Check if camera source is available
+        guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
+            imagePickerSource = .photoLibrary
+            return
+        }
+
+        let cameraAuthorizationStatus = AVCaptureDevice.authorizationStatus(for: .video)
+
+        switch cameraAuthorizationStatus {
+        case .authorized:
+            // Permission already granted, open camera
+            imagePickerSource = .camera
+
+        case .notDetermined:
+            // Request permission
+            AVCaptureDevice.requestAccess(for: .video) { granted in
+                DispatchQueue.main.async {
+                    if granted {
+                        self.imagePickerSource = .camera
+                    }
+                }
+            }
+
+        case .denied, .restricted:
+            // Permission previously denied
+            break
+
+        @unknown default:
+            break
         }
     }
 }
@@ -232,30 +232,33 @@ struct StoreCard: View {
     var body: some View {
         Button(action: action) {
             VStack(spacing: 12) {
-                // Store Icon/Logo
+                // Store Logo Card
                 ZStack {
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(
-                            LinearGradient(
-                                colors: gradientColors,
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(height: 120)
+                    // Use custom logo if available, otherwise fallback to tag icon with name
+                    if let logoName = store.logoImageName {
+                        Image(logoName)
+                            .resizable()
+                            .scaledToFit()
+                            .padding(20)
+                    } else {
+                        VStack(spacing: 8) {
+                            Image(systemName: "tag.fill")
+                                .font(.system(size: 40))
+                                .foregroundColor(.gray)
 
-                    VStack(spacing: 8) {
-                        Image(systemName: "tag.fill")
-                            .font(.system(size: 40))
-                            .foregroundColor(.white)
-
-                        Text(store.name)
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .multilineTextAlignment(.center)
+                            Text(store.name)
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .foregroundColor(.primary)
+                                .multilineTextAlignment(.center)
+                        }
                     }
-                    .padding()
                 }
+                .frame(maxWidth: .infinity)
+                .frame(height: 120)
+                .background(Color.white)
+                .cornerRadius(16)
+                .shadow(color: .black.opacity(0.15), radius: 8, y: 2)
 
                 // Category Badge
                 Text(store.category.rawValue)
@@ -264,22 +267,6 @@ struct StoreCard: View {
             }
         }
         .buttonStyle(.plain)
-    }
-
-    private var gradientColors: [Color] {
-        // Vary gradient based on category
-        switch store.category {
-        case .luxury:
-            return [.purple, .pink]
-        case .fashion:
-            return [.blue, .cyan]
-        case .streetwear:
-            return [.orange, .red]
-        case .athletic:
-            return [.green, .mint]
-        case .sustainable:
-            return [.teal, .green]
-        }
     }
 }
 
@@ -445,9 +432,25 @@ struct GarmentImagePicker: UIViewControllerRepresentable {
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
-        picker.sourceType = sourceType
+
+        // Check if the requested source type is available
+        if UIImagePickerController.isSourceTypeAvailable(sourceType) {
+            picker.sourceType = sourceType
+        } else {
+            picker.sourceType = .photoLibrary
+        }
+
         picker.delegate = context.coordinator
-        picker.allowsEditing = true
+
+        // No editing - user will crop after selection in TryOnProcessView
+        picker.allowsEditing = false
+
+        // Set camera settings for better compatibility
+        if sourceType == .camera {
+            picker.cameraCaptureMode = .photo
+            picker.cameraDevice = .rear
+        }
+
         return picker
     }
 
@@ -465,9 +468,8 @@ struct GarmentImagePicker: UIViewControllerRepresentable {
         }
 
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-            if let editedImage = info[.editedImage] as? UIImage {
-                parent.image = editedImage
-            } else if let originalImage = info[.originalImage] as? UIImage {
+            // Always use original image (no editing enabled)
+            if let originalImage = info[.originalImage] as? UIImage {
                 parent.image = originalImage
             }
             parent.dismiss()
@@ -476,6 +478,13 @@ struct GarmentImagePicker: UIViewControllerRepresentable {
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
             parent.dismiss()
         }
+    }
+}
+
+// MARK: - UIImagePickerController.SourceType + Identifiable
+extension UIImagePickerController.SourceType: Identifiable {
+    public var id: Int {
+        return self.rawValue
     }
 }
 

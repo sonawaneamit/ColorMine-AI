@@ -19,9 +19,9 @@ class CreditsManager: ObservableObject {
     // Product IDs (must match App Store Connect)
     private let productIDs = [
         "com.colormineai.tryon.credits.1",    // 1 credit - $6.99
-        "com.colormineai.tryon.credits.5",    // 5 credits - $15.00 ($3.00 ea, save 57%)
-        "com.colormineai.tryon.credits.15",   // 15 credits - $34.00 ($2.27 ea, save 68%)
-        "com.colormineai.tryon.credits.30"    // 30 credits - $55.00 ($1.83 ea, save 74%)
+        "com.colormineai.tryon.credits.5",    // 5 credits - $3.00 each (save 57%)
+        "com.colormineai.tryon.credits.15",   // 15 credits - $2.27 each (save 68%)
+        "com.colormineai.tryon.credits.30"    // 30 credits - $1.83 each (save 74%)
     ]
 
     private var updateListenerTask: Task<Void, Error>?

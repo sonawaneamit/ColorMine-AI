@@ -63,13 +63,16 @@ struct CreditsPurchaseView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Done") {
-                        dismiss()
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark")
+                            .font(.body)
+                            .foregroundColor(.primary)
                     }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Restore") {
-                        restorePurchases()
+                    Button(action: { restorePurchases() }) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.body)
                     }
                     .disabled(isPurchasing)
                 }
@@ -370,16 +373,16 @@ struct CreditPackCard: View {
     }
 
     private var savingsPercentage: Int? {
-        // Calculate savings compared to 1 credit price ($6.99)
+        // Calculate savings compared to 1 credit base price ($6.99 per credit)
         switch creditAmount {
         case 1:
             return nil // No savings on base price
         case 5:
-            return 57 // $3.00 vs $6.99 = 57% off
+            return 57 // $3.00 each vs $6.99 = 57% off
         case 15:
-            return 68 // $2.27 vs $6.99 = 68% off
+            return 68 // $2.27 each vs $6.99 = 68% off
         case 30:
-            return 74 // $1.83 vs $6.99 = 74% off
+            return 74 // $1.83 each vs $6.99 = 74% off
         default:
             return nil
         }
@@ -391,6 +394,18 @@ struct CreditPackCard: View {
 
     private var isBestValue: Bool {
         creditAmount == 30 // Best value per credit
+    }
+
+    private var perCreditPriceText: String {
+        // For 1 credit, show total price
+        if creditAmount == 1 {
+            return product.displayPrice
+        }
+
+        // For multiple credits, show per-credit price
+        let perCreditPrice = product.price / Decimal(creditAmount)
+        let priceDouble = NSDecimalNumber(decimal: perCreditPrice).doubleValue
+        return String(format: "$%.2f each", priceDouble)
     }
 
     var body: some View {
@@ -449,7 +464,7 @@ struct CreditPackCard: View {
 
                 Spacer()
 
-                Text(product.displayPrice)
+                Text(perCreditPriceText)
                     .font(.title3)
                     .fontWeight(.semibold)
                     .foregroundColor(.purple)

@@ -16,6 +16,7 @@ struct SettingsView: View {
     @State private var showBugReport = false
     @State private var showRestoreAlert = false
     @State private var restoreMessage = ""
+    @State private var showClearDataConfirmation = false
 
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
@@ -70,6 +71,24 @@ struct SettingsView: View {
                     }
                 } header: {
                     Text("Purchases")
+                }
+
+                // MARK: - Data & Privacy Section
+                Section {
+                    Button(action: { showClearDataConfirmation = true }) {
+                        HStack {
+                            Image(systemName: "trash.fill")
+                                .foregroundColor(.red)
+                                .font(.title3)
+
+                            Text("Clear All History")
+                                .foregroundColor(.red)
+                        }
+                    }
+                } header: {
+                    Text("Data & Privacy")
+                } footer: {
+                    Text("This will permanently delete all saved garments, try-on history, and color analysis history. Your purchased credits will be preserved. This action cannot be undone.")
                 }
 
                 // MARK: - Support & Feedback Section
@@ -180,6 +199,14 @@ struct SettingsView: View {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(restoreMessage)
+            }
+            .confirmationDialog("Clear All History", isPresented: $showClearDataConfirmation, titleVisibility: .visible) {
+                Button("Clear All Data", role: .destructive) {
+                    clearAllData()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This will permanently delete all saved garments, try-on history, and color analysis history. Your purchased credits will be preserved.")
             }
             .sheet(isPresented: $showMailComposer) {
                 MailComposeView(
@@ -292,6 +319,15 @@ struct SettingsView: View {
                 UIApplication.shared.open(url)
             }
         }
+    }
+
+    private func clearAllData() {
+        print("🗑️ Clearing all data...")
+
+        appState.clearAllData()
+
+        HapticManager.shared.success()
+        print("✅ All data cleared successfully")
     }
 }
 

@@ -21,29 +21,23 @@ struct TryOnBrowserView: View {
     @State private var currentURL: URL?
     @State private var isLoading = true
     @State private var estimatedProgress: Double = 0
-    @State private var showCropOverlay = false  // Show crop overlay for manual positioning
 
     init(store: Store) {
         self.store = store
         self.customURL = nil
-        print("🌐 [TryOnBrowser] Initialized with store: \(store.name), URL: \(store.url)")
     }
 
     init(customURL: String) {
         self.store = nil
         self.customURL = customURL
-        print("🌐 [TryOnBrowser] Initialized with custom URL: \(customURL)")
     }
 
     private var initialURL: URL {
         if let store = store, let url = URL(string: store.url) {
-            print("🌐 [TryOnBrowser] Using store URL: \(url)")
             return url
         } else if let customURL = customURL, let url = URL(string: customURL) {
-            print("🌐 [TryOnBrowser] Using custom URL: \(url)")
             return url
         } else {
-            print("⚠️ [TryOnBrowser] No valid URL, falling back to Google")
             // Fallback to a default URL
             return URL(string: "https://www.google.com")!
         }
@@ -58,8 +52,6 @@ struct TryOnBrowserView: View {
     }
 
     var body: some View {
-        let _ = print("🌐 [TryOnBrowser] Body rendering with URL: \(initialURL)")
-
         NavigationStack {
             ZStack(alignment: .bottom) {
                 // Web View
@@ -83,24 +75,15 @@ struct TryOnBrowserView: View {
                     .background(Color.black.opacity(0.1))
                 }
 
-                // Crop Overlay for Manual Positioning
-                if showCropOverlay {
-                    CropOverlayView(
-                        onCapture: { captureFromOverlay() },
-                        onCancel: { showCropOverlay = false }
-                    )
-                }
+                // Floating "Add to Try-On" Button
+                VStack {
+                    Spacer()
 
-                // Floating "Add to Try-On" Button (hidden when overlay is shown)
-                if !showCropOverlay {
-                    VStack {
-                        Spacer()
-
-                        Button(action: {
-                            if !isCapturing && !isSaved {
-                                showCropOverlay = true
-                            }
-                        }) {
+                    Button(action: {
+                        if !isCapturing && !isSaved {
+                            captureScreenshot()
+                        }
+                    }) {
                             HStack(spacing: 8) {
                                 if isSaved {
                                     Image(systemName: "checkmark.circle.fill")
@@ -130,35 +113,31 @@ struct TryOnBrowserView: View {
                         }
                         .disabled(isCapturing || isSaved)
                         .padding(.bottom, 30)
-                    }
                 }
             }
             .navigationTitle(displayName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    HStack(spacing: 8) {
+                    HStack(spacing: 12) {
                         // Back button
                         Button(action: { webView?.goBack() }) {
                             Image(systemName: "chevron.left")
+                                .font(.body)
                         }
                         .disabled(webView?.canGoBack == false)
 
                         // Forward button
                         Button(action: { webView?.goForward() }) {
                             Image(systemName: "chevron.right")
+                                .font(.body)
                         }
                         .disabled(webView?.canGoForward == false)
 
                         // Reload button
                         Button(action: { webView?.reload() }) {
                             Image(systemName: "arrow.clockwise")
+                                .font(.body)
                         }
                     }
                 }
@@ -166,15 +145,10 @@ struct TryOnBrowserView: View {
         }
     }
 
-    // New function to capture from the crop overlay
-    private func captureFromOverlay() {
-        guard let webView = webView else {
-            print("❌ WebView not available")
-            return
-        }
+    // Capture screenshot and use Gemini to extract the clothing item
+    private func captureScreenshot() {
+        guard let webView = webView else { return }
 
-        // Hide overlay and show capture progress
-        showCropOverlay = false
         isCapturing = true
         appState.isSavingGarment = true
 
@@ -184,119 +158,67 @@ struct TryOnBrowserView: View {
         // Capture current URL for product link
         let productURLString = currentURL?.absoluteString
 
-        // Calculate the 9:16 crop frame in the center
-        let screenSize = UIScreen.main.bounds.size
-        let frameWidth = screenSize.width * 0.8  // 80% of screen width
-        let frameHeight = frameWidth * (16.0 / 9.0)  // 9:16 aspect ratio
-        let frameX = (screenSize.width - frameWidth) / 2
-        let frameY = (screenSize.height - frameHeight) / 2
-
-        let cropRect = CGRect(x: frameX, y: frameY, width: frameWidth, height: frameHeight)
-
-        // Take screenshot of the crop area
+        // Take full visible area screenshot
         let config = WKSnapshotConfiguration()
-        config.rect = cropRect
+        config.rect = CGRect(origin: .zero, size: webView.bounds.size)
 
-        webView.takeSnapshot(with: config) { image, error in
+        webView.takeSnapshot(with: config) { fullImage, error in
+            // Update UI on main thread
+            Task { @MainActor in
+                self.isCapturing = false
+                self.isSaved = true
 
-            defer {
-                Task { @MainActor in
-                    self.isCapturing = false
-                    self.isSaved = true
-
-                    // Reset saved state after 2 seconds
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                        self.isSaved = false
-                    }
+                // Reset saved state after 2 seconds
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    self.isSaved = false
                 }
             }
 
-            guard let screenshot = image, error == nil else {
-                print("❌ Failed to capture screenshot: \(error?.localizedDescription ?? "unknown")")
+            guard let screenshot = fullImage, error == nil else {
                 return
             }
 
-            // Optimize image resolution (max 1024px on longest side)
-            let optimizedImage = self.resizeImage(screenshot, maxDimension: 1024)
-
-            print("📐 Original size: \(Int(screenshot.size.width))x\(Int(screenshot.size.height))")
-            print("📐 Optimized size: \(Int(optimizedImage.size.width))x\(Int(optimizedImage.size.height))")
-
-            // Continue saving in background
+            // Save screenshot directly (Gemini will focus on clothing during try-on)
             Task {
-                // Save to cache with optimized image
+                // Optimize image resolution (max 1024px on longest side)
+                let optimizedImage = self.resizeImage(screenshot, maxDimension: 1024)
+
+                // Save to cache
                 guard let garmentURL = TryOnCacheManager.shared.saveGarment(optimizedImage) else {
-                    print("❌ Failed to save garment image")
+                    await MainActor.run {
+                        self.appState.isSavingGarment = false
+                    }
                     return
                 }
 
                 // Get profile
                 guard var profile = self.appState.currentProfile else {
-                    print("❌ No current profile")
+                    await MainActor.run {
+                        self.appState.isSavingGarment = false
+                    }
                     return
                 }
 
-                // Analyze garment color using OpenAI
-                let season = profile.season
+                // Create garment item WITHOUT color analysis (will analyze on try-on)
+                let source = self.storeName ?? self.currentURL?.host ?? "Web"
+                let garment = GarmentItem(
+                    imageURL: garmentURL,
+                    sourceStore: source,
+                    productURL: productURLString,
+                    dominantColorHex: nil,
+                    matchesUserSeason: false,  // Will be analyzed during try-on
+                    colorMatchScore: nil  // Will be analyzed during try-on
+                )
 
-                print("🎨 Analyzing garment color with OpenAI...")
+                // Add to profile and save immediately
+                profile.savedGarments.append(garment)
+                self.appState.saveProfile(profile)
 
-                do {
-                    let analysis = try await OpenAIService.shared.analyzeGarmentColor(
-                        garmentImage: optimizedImage,
-                        userSeason: season
-                    )
-
-                    // Create garment item with OpenAI analysis
-                    // If no store, try to extract domain from current URL
-                    let source = self.storeName ?? self.currentURL?.host ?? "Web"
-
-                    let garment = GarmentItem(
-                        imageURL: garmentURL,
-                        sourceStore: source,
-                        productURL: productURLString,  // Save product URL
-                        dominantColorHex: nil, // No longer needed with OpenAI
-                        matchesUserSeason: analysis.matchScore >= 70,
-                        colorMatchScore: analysis.matchScore
-                    )
-
-                    // Add to profile
-                    profile.savedGarments.append(garment)
-                    self.appState.saveProfile(profile)
-
-                    print("✅ Garment saved: \(garment.id) with \(analysis.matchScore)% match")
-                    print("🔗 Product URL: \(productURLString ?? "none")")
-                    print("🧠 OpenAI reasoning: \(analysis.reasoning)")
-
-                    // Clear saving flag
-                    await MainActor.run {
-                        self.appState.isSavingGarment = false
-                    }
-
-                } catch {
-                    print("❌ Failed to analyze garment color: \(error.localizedDescription)")
-                    // Still save garment but without color analysis
-                    let source = self.storeName ?? self.currentURL?.host ?? "Web"
-                    let garment = GarmentItem(
-                        imageURL: garmentURL,
-                        sourceStore: source,
-                        productURL: productURLString,  // Save product URL
-                        dominantColorHex: nil,
-                        matchesUserSeason: false,
-                        colorMatchScore: nil // No score if analysis failed
-                    )
-                    profile.savedGarments.append(garment)
-                    self.appState.saveProfile(profile)
-
-                    print("✅ Garment saved without color analysis")
-
-                    // Clear saving flag
-                    await MainActor.run {
-                        self.appState.isSavingGarment = false
-                    }
+                await MainActor.run {
+                    self.appState.isSavingGarment = false
                 }
             }
-        } // End takeSnapshot
+        }
     }
 
     // Helper function to resize image
@@ -343,8 +265,6 @@ struct WebView: UIViewRepresentable {
     }
 
     func makeUIView(context: Context) -> WKWebView {
-        print("🌐 [WebView] Creating WKWebView for URL: \(url)")
-
         // Enhanced configuration for full browser capabilities
         let configuration = WKWebViewConfiguration()
 
@@ -380,36 +300,26 @@ struct WebView: UIViewRepresentable {
         webView.scrollView.maximumZoomScale = 5.0
         webView.scrollView.bouncesZoom = true
 
-        // Set user agent to desktop Safari for full website experience
-        webView.customUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"
-
-        print("🌐 [WebView] WKWebView created with full browser capabilities")
-
-        // Add KVO observers for loading state
-        webView.addObserver(context.coordinator, forKeyPath: #keyPath(WKWebView.estimatedProgress), options: .new, context: nil)
-        webView.addObserver(context.coordinator, forKeyPath: #keyPath(WKWebView.isLoading), options: .new, context: nil)
+        // Set user agent to mobile Safari for mobile-optimized experience
+        webView.customUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
 
         // Store reference
         DispatchQueue.main.async {
             self.webView = webView
             self.currentURL = url
             self.isLoading = true
-            print("🌐 [WebView] WebView reference stored")
         }
 
         // Load URL with proper cache policy
         var request = URLRequest(url: url)
         request.cachePolicy = .returnCacheDataElseLoad
         webView.load(request)
-        print("🌐 [WebView] Load request sent for: \(url)")
 
         return webView
     }
 
     static func dismantleUIView(_ uiView: WKWebView, coordinator: Coordinator) {
-        // Remove observers when view is destroyed
-        uiView.removeObserver(coordinator, forKeyPath: #keyPath(WKWebView.estimatedProgress))
-        uiView.removeObserver(coordinator, forKeyPath: #keyPath(WKWebView.isLoading))
+        // Clean up
     }
 
     func updateUIView(_ uiView: WKWebView, context: Context) {
@@ -423,46 +333,26 @@ struct WebView: UIViewRepresentable {
             self.parent = parent
         }
 
-        // KVO observer for loading progress
-        override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
-            if keyPath == "estimatedProgress" {
-                if let webView = object as? WKWebView {
-                    DispatchQueue.main.async {
-                        self.parent.estimatedProgress = webView.estimatedProgress
-                        print("📊 [Progress] \(Int(webView.estimatedProgress * 100))%")
-                    }
-                }
-            } else if keyPath == "isLoading" {
-                if let webView = object as? WKWebView {
-                    DispatchQueue.main.async {
-                        self.parent.isLoading = webView.isLoading
-                        print("⏳ [Loading] isLoading: \(webView.isLoading)")
-                    }
-                }
-            }
-        }
-
         // Called when navigation starts
         func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
-            print("🌐 [Navigation] Started loading: \(webView.url?.absoluteString ?? "unknown")")
             DispatchQueue.main.async {
                 self.parent.isLoading = true
+                // Update progress manually
+                self.parent.estimatedProgress = 0.1
             }
         }
 
         // Called when navigation completes successfully
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            print("✅ [Navigation] Finished loading: \(webView.url?.absoluteString ?? "unknown")")
             DispatchQueue.main.async {
                 self.parent.currentURL = webView.url
                 self.parent.isLoading = false
+                self.parent.estimatedProgress = 1.0
             }
         }
 
         // Called when navigation fails
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-            print("❌ [Navigation] Failed: \(error.localizedDescription)")
-            print("❌ [Navigation] Error details: \(error)")
             DispatchQueue.main.async {
                 self.parent.isLoading = false
             }
@@ -470,113 +360,15 @@ struct WebView: UIViewRepresentable {
 
         // Called when provisional navigation fails
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
-            print("❌ [Navigation] Provisional navigation failed: \(error.localizedDescription)")
-            print("❌ [Navigation] Error details: \(error)")
             DispatchQueue.main.async {
                 self.parent.isLoading = false
             }
         }
 
-        // Called when web content process terminates
-        func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
-            print("⚠️ [Navigation] Web content process terminated!")
-        }
-
         // Called to decide whether to allow navigation
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-            print("🌐 [Navigation] Deciding policy for: \(navigationAction.request.url?.absoluteString ?? "unknown")")
             decisionHandler(.allow)
         }
-    }
-}
-
-// MARK: - Crop Overlay View
-struct CropOverlayView: View {
-    let onCapture: () -> Void
-    let onCancel: () -> Void
-
-    var body: some View {
-        ZStack {
-            // Semi-transparent overlay outside crop area
-            Color.black.opacity(0.7)
-                .ignoresSafeArea()
-
-            // Crop frame (9:16 aspect ratio)
-            GeometryReader { geometry in
-                let frameWidth = geometry.size.width * 0.8
-                let frameHeight = frameWidth * (16.0 / 9.0)
-
-                ZStack {
-                    // Clear center area showing the crop frame
-                    Rectangle()
-                        .frame(width: frameWidth, height: frameHeight)
-                        .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
-                        .blendMode(.destinationOut)
-
-                    // Border around the crop frame
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color.white, lineWidth: 3)
-                        .frame(width: frameWidth, height: frameHeight)
-                        .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
-                }
-            }
-
-            VStack {
-                // Instructions at top
-                VStack(spacing: 12) {
-                    Text("Position Your Product")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-
-                    Text("Zoom and pan to fit the product within the frame")
-                        .font(.subheadline)
-                        .foregroundColor(.white.opacity(0.9))
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 40)
-                }
-                .padding(.top, 60)
-
-                Spacer()
-
-                // Action buttons at bottom
-                HStack(spacing: 20) {
-                    // Cancel button
-                    Button(action: onCancel) {
-                        Text("Cancel")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(Color.gray.opacity(0.5))
-                            .cornerRadius(12)
-                    }
-
-                    // Capture button
-                    Button(action: onCapture) {
-                        HStack {
-                            Image(systemName: "camera.fill")
-                            Text("Capture")
-                                .font(.headline)
-                        }
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(
-                            LinearGradient(
-                                colors: [.purple, .pink],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .cornerRadius(12)
-                    }
-                }
-                .padding(.horizontal, 30)
-                .padding(.bottom, 50)
-            }
-        }
-        .compositingGroup()
     }
 }
 

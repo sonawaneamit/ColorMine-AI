@@ -235,6 +235,9 @@ struct ScanView: View {
                 )
                 profile.reasoning = result.reasoning  // Save AI reasoning if available
 
+                // Restore preserved data (credits, garments, history) from "Start Over"
+                appState.restorePreservedData(to: &profile)
+
                 appState.saveProfile(profile)
 
                 // Haptic feedback for season discovery milestone

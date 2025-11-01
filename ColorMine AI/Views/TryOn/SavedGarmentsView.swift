@@ -9,6 +9,7 @@ import SwiftUI
 
 struct SavedGarmentsView: View {
     @EnvironmentObject var appState: AppState
+    @Environment(\.dismiss) private var dismiss
     @State private var selectedGarment: GarmentItem?
     @State private var garmentToDelete: GarmentItem?
     @State private var showDeleteConfirmation = false
@@ -31,7 +32,16 @@ struct SavedGarmentsView: View {
         }
         .navigationTitle("Saved Garments")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(item: $selectedGarment) { garment in
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button(action: { dismiss() }) {
+                    Image(systemName: "xmark")
+                        .font(.body)
+                        .foregroundColor(.primary)
+                }
+            }
+        }
+        .navigationDestination(item: $selectedGarment) { garment in
             TryOnProcessView(garment: garment)
                 .environmentObject(appState)
         }

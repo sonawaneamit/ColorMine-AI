@@ -52,53 +52,17 @@ struct TryOnResultView: View {
                                         showFullScreenImage = true
                                     }
 
-                                // Top-right buttons
-                                HStack(spacing: 12) {
-                                    // Video generation button with cost indicator
-                                    Button(action: generateVideo) {
-                                        VStack(spacing: 4) {
-                                            if isGeneratingVideo {
-                                                ProgressView()
-                                                    .tint(.white)
-                                            } else if hasVideo {
-                                                Image(systemName: "play.circle.fill")
-                                                    .font(.title2)
-                                            } else {
-                                                Image(systemName: "video.badge.plus")
-                                                    .font(.title2)
-                                            }
-
-                                            if !hasVideo && !isGeneratingVideo {
-                                                Text("3 credits")
-                                                    .font(.caption2)
-                                                    .fontWeight(.semibold)
-                                            } else if hasVideo && !isGeneratingVideo {
-                                                Text("Play")
-                                                    .font(.caption2)
-                                                    .fontWeight(.semibold)
-                                            }
-                                        }
+                                // Color analysis toggle (top-right)
+                                Button(action: {
+                                    withAnimation {
+                                        showColorAnalysis.toggle()
+                                    }
+                                }) {
+                                    Image(systemName: showColorAnalysis ? "eye.fill" : "eye.slash.fill")
+                                        .font(.title3)
                                         .foregroundColor(.white)
-                                        .padding(10)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 12)
-                                                .fill(hasVideo ? Color.green.opacity(0.9) : Color.purple.opacity(0.9))
-                                        )
-                                    }
-                                    .disabled(isGeneratingVideo)
-
-                                    // Color analysis toggle
-                                    Button(action: {
-                                        withAnimation {
-                                            showColorAnalysis.toggle()
-                                        }
-                                    }) {
-                                        Image(systemName: showColorAnalysis ? "eye.fill" : "eye.slash.fill")
-                                            .font(.title3)
-                                            .foregroundColor(.white)
-                                            .padding(12)
-                                            .background(Circle().fill(.black.opacity(0.5)))
-                                    }
+                                        .padding(12)
+                                        .background(Circle().fill(.black.opacity(0.5)))
                                 }
                                 .padding()
                             }
@@ -111,6 +75,8 @@ struct TryOnResultView: View {
                                 }
                         }
 
+                        // Video button section (moved below image)
+                        videoButtonSection
 
                     // Color Analysis Section (if enabled)
                     if showColorAnalysis, let profile = userProfile {
@@ -171,37 +137,38 @@ struct TryOnResultView: View {
                 .zIndex(1) // Ensure it appears above ScrollView content
             }
         }
-            .navigationTitle("Try-On Result")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { showShareSheet = true }) {
-                        Image(systemName: "square.and.arrow.up")
-                    }
-                }
+        .navigationTitle("Try-On Result")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarItems(
+            leading: Button(action: { dismiss() }) {
+                Image(systemName: "checkmark")
+                    .font(.body)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+            },
+            trailing: Button(action: { showShareSheet = true }) {
+                Image(systemName: "square.and.arrow.up")
+                    .font(.body)
             }
-            .sheet(isPresented: $showShareSheet) {
-                if let image = resultImage,
-                   let watermarkedImage = addWatermark(to: image) {
-                    ShareSheet(items: [watermarkedImage])
-                }
+        )
+        .sheet(isPresented: $showShareSheet) {
+            if let image = resultImage,
+               let watermarkedImage = addWatermark(to: image) {
+                ShareSheet(items: [watermarkedImage])
             }
-            .fullScreenCover(isPresented: $showVideoPlayer) {
-                if let url = videoURL {
-                    VideoPlayerView(videoURL: url)
-                }
+        }
+        .fullScreenCover(isPresented: $showVideoPlayer) {
+            if let url = videoURL {
+                VideoPlayerView(videoURL: url)
             }
-            .fullScreenCover(isPresented: $showFullScreenImage) {
-                if let image = resultImage {
-                    ZoomableImageView(image: image)
-                }
+        }
+        .fullScreenCover(isPresented: $showFullScreenImage) {
+            if let image = resultImage {
+                ZoomableImageView(image: image)
             }
-            .sheet(isPresented: $showCreditsPurchase) {
+        }
+        .fullScreenCover(isPresented: $showCreditsPurchase) {
+            NavigationStack {
                 CreditsPurchaseView()
             }
         }
@@ -212,6 +179,75 @@ struct TryOnResultView: View {
                 generatedVideoURL = existingVideoURL
             }
         }
+        }
+    }
+
+    // MARK: - Video Button Section
+    @ViewBuilder
+    private var videoButtonSection: some View {
+        Button(action: generateVideo) {
+            HStack(spacing: 12) {
+                // Icon
+                if isGeneratingVideo {
+                    ProgressView()
+                        .tint(.white)
+                } else if hasVideo {
+                    Image(systemName: "play.circle.fill")
+                        .font(.title2)
+                } else {
+                    Image(systemName: "video.badge.plus")
+                        .font(.title2)
+                }
+
+                // Text
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(hasVideo ? "Watch Your Try-On Video" : "Generate Try-On Video")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+
+                    if !hasVideo && !isGeneratingVideo {
+                        Text("8-second animation • 3 credits")
+                            .font(.caption)
+                    } else if hasVideo && !isGeneratingVideo {
+                        Text("Tap to watch")
+                            .font(.caption)
+                    }
+                }
+
+                Spacer()
+
+                // Badge or chevron
+                if !hasVideo && !isGeneratingVideo {
+                    HStack(spacing: 4) {
+                        Image(systemName: "sparkles")
+                            .font(.caption)
+                        Text("3")
+                            .font(.subheadline)
+                            .fontWeight(.bold)
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Capsule().fill(Color.purple.opacity(0.8)))
+                } else if hasVideo {
+                    Image(systemName: "chevron.right")
+                        .font(.body)
+                }
+            }
+            .foregroundColor(.white)
+            .padding()
+            .frame(maxWidth: .infinity)
+            .background(
+                LinearGradient(
+                    colors: hasVideo ? [.green, .green.opacity(0.8)] : [.purple, .pink],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .cornerRadius(16)
+            .shadow(color: (hasVideo ? Color.green : Color.purple).opacity(0.3), radius: 10, y: 5)
+        }
+        .disabled(isGeneratingVideo)
     }
 
     // MARK: - Color Analysis Section
@@ -613,6 +649,7 @@ struct ColorAnalysisRow: View {
 
 // MARK: - Video Player View
 import AVKit
+import AVFoundation
 import Photos
 
 struct VideoPlayerView: View {
@@ -621,6 +658,7 @@ struct VideoPlayerView: View {
     @State private var player: AVPlayer?
     @State private var showSaveSuccess = false
     @State private var showSaveError = false
+    @State private var isSavingVideo = false
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -644,12 +682,20 @@ struct VideoPlayerView: View {
 
                 // Save to camera roll button
                 Button(action: saveVideoToCameraRoll) {
-                    Image(systemName: "square.and.arrow.down.fill")
-                        .font(.title)
-                        .foregroundColor(.white)
-                        .padding()
-                        .background(Circle().fill(.black.opacity(0.5)))
+                    if isSavingVideo {
+                        ProgressView()
+                            .tint(.white)
+                            .padding()
+                            .background(Circle().fill(.black.opacity(0.5)))
+                    } else {
+                        Image(systemName: "square.and.arrow.down.fill")
+                            .font(.title)
+                            .foregroundColor(.white)
+                            .padding()
+                            .background(Circle().fill(.black.opacity(0.5)))
+                    }
                 }
+                .disabled(isSavingVideo)
             }
             .padding()
         }
@@ -675,30 +721,189 @@ struct VideoPlayerView: View {
     }
 
     private func saveVideoToCameraRoll() {
+        isSavingVideo = true
+
         // Check photo library authorization
         PHPhotoLibrary.requestAuthorization { status in
             guard status == .authorized || status == .limited else {
                 DispatchQueue.main.async {
                     showSaveError = true
+                    isSavingVideo = false
                 }
                 return
             }
 
-            // Save video to photo library
-            PHPhotoLibrary.shared().performChanges({
-                PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: videoURL)
-            }) { success, error in
-                DispatchQueue.main.async {
-                    if success {
-                        showSaveSuccess = true
-                        HapticManager.shared.success()
-                        print("✅ Video saved to camera roll")
-                    } else {
+            // Add watermark to video
+            addWatermarkToVideo(videoURL: videoURL) { watermarkedURL in
+                guard let watermarkedURL = watermarkedURL else {
+                    DispatchQueue.main.async {
                         showSaveError = true
-                        HapticManager.shared.error()
-                        print("❌ Failed to save video: \(error?.localizedDescription ?? "unknown")")
+                        isSavingVideo = false
+                        print("❌ Failed to add watermark to video")
+                    }
+                    return
+                }
+
+                // Save watermarked video to photo library
+                PHPhotoLibrary.shared().performChanges({
+                    PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: watermarkedURL)
+                }) { success, error in
+                    DispatchQueue.main.async {
+                        isSavingVideo = false
+
+                        if success {
+                            showSaveSuccess = true
+                            HapticManager.shared.success()
+                            print("✅ Video saved to camera roll with watermark")
+                        } else {
+                            showSaveError = true
+                            HapticManager.shared.error()
+                            print("❌ Failed to save video: \(error?.localizedDescription ?? "unknown")")
+                        }
+
+                        // Clean up temporary watermarked video
+                        try? FileManager.default.removeItem(at: watermarkedURL)
                     }
                 }
+            }
+        }
+    }
+
+    private func addWatermarkToVideo(videoURL: URL, completion: @escaping (URL?) -> Void) {
+        let asset = AVAsset(url: videoURL)
+
+        guard let videoTrack = asset.tracks(withMediaType: .video).first else {
+            completion(nil)
+            return
+        }
+
+        // Create composition
+        let composition = AVMutableComposition()
+
+        guard let compositionVideoTrack = composition.addMutableTrack(
+            withMediaType: .video,
+            preferredTrackID: kCMPersistentTrackID_Invalid
+        ) else {
+            completion(nil)
+            return
+        }
+
+        // Add audio if present
+        var compositionAudioTrack: AVMutableCompositionTrack?
+        if asset.tracks(withMediaType: .audio).first != nil {
+            compositionAudioTrack = composition.addMutableTrack(
+                withMediaType: .audio,
+                preferredTrackID: kCMPersistentTrackID_Invalid
+            )
+        }
+
+        do {
+            let duration = asset.duration
+            try compositionVideoTrack.insertTimeRange(
+                CMTimeRange(start: .zero, duration: duration),
+                of: videoTrack,
+                at: .zero
+            )
+
+            if let audioTrack = asset.tracks(withMediaType: .audio).first,
+               let compositionAudioTrack = compositionAudioTrack {
+                try compositionAudioTrack.insertTimeRange(
+                    CMTimeRange(start: .zero, duration: duration),
+                    of: audioTrack,
+                    at: .zero
+                )
+            }
+        } catch {
+            print("❌ Error inserting tracks: \(error)")
+            completion(nil)
+            return
+        }
+
+        // Get video size and create watermark layer
+        let videoSize = videoTrack.naturalSize
+        let watermarkText = "ColorMine AI"
+
+        // Create text layer for watermark
+        let textLayer = CATextLayer()
+        textLayer.string = watermarkText
+        textLayer.font = UIFont.systemFont(ofSize: 28, weight: .semibold)
+        textLayer.fontSize = 28
+        textLayer.foregroundColor = UIColor.white.cgColor
+        textLayer.shadowColor = UIColor.black.cgColor
+        textLayer.shadowOpacity = 0.5
+        textLayer.shadowOffset = CGSize(width: 1, height: 1)
+        textLayer.shadowRadius = 3
+        textLayer.alignmentMode = .right
+
+        // Position watermark in bottom-right corner with padding
+        let textSize = (watermarkText as NSString).size(withAttributes: [
+            .font: UIFont.systemFont(ofSize: 28, weight: .semibold)
+        ])
+        let padding: CGFloat = 20
+        textLayer.frame = CGRect(
+            x: videoSize.width - textSize.width - padding,
+            y: padding,
+            width: textSize.width,
+            height: textSize.height
+        )
+
+        // Create video composition layer
+        let videoLayer = CALayer()
+        videoLayer.frame = CGRect(origin: .zero, size: videoSize)
+
+        // Create parent layer
+        let parentLayer = CALayer()
+        parentLayer.frame = CGRect(origin: .zero, size: videoSize)
+        parentLayer.addSublayer(videoLayer)
+        parentLayer.addSublayer(textLayer)
+
+        // Create video composition
+        let videoComposition = AVMutableVideoComposition()
+        videoComposition.renderSize = videoSize
+        videoComposition.frameDuration = CMTime(value: 1, timescale: 30)
+        videoComposition.animationTool = AVVideoCompositionCoreAnimationTool(
+            postProcessingAsVideoLayer: videoLayer,
+            in: parentLayer
+        )
+
+        // Create composition instruction
+        let instruction = AVMutableVideoCompositionInstruction()
+        instruction.timeRange = CMTimeRange(start: .zero, duration: composition.duration)
+
+        let layerInstruction = AVMutableVideoCompositionLayerInstruction(assetTrack: compositionVideoTrack)
+        instruction.layerInstructions = [layerInstruction]
+        videoComposition.instructions = [instruction]
+
+        // Export watermarked video
+        let outputURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension("mp4")
+
+        guard let exportSession = AVAssetExportSession(
+            asset: composition,
+            presetName: AVAssetExportPresetHighestQuality
+        ) else {
+            completion(nil)
+            return
+        }
+
+        exportSession.outputURL = outputURL
+        exportSession.outputFileType = .mp4
+        exportSession.videoComposition = videoComposition
+
+        exportSession.exportAsynchronously {
+            switch exportSession.status {
+            case .completed:
+                print("✅ Watermark added successfully")
+                completion(outputURL)
+            case .failed:
+                print("❌ Export failed: \(exportSession.error?.localizedDescription ?? "unknown")")
+                completion(nil)
+            case .cancelled:
+                print("⚠️ Export cancelled")
+                completion(nil)
+            default:
+                completion(nil)
             }
         }
     }

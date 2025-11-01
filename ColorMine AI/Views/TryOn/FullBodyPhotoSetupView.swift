@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AVFoundation
 
 struct FullBodyPhotoSetupView: View {
     @EnvironmentObject var appState: AppState
@@ -52,6 +53,7 @@ struct FullBodyPhotoSetupView: View {
                         TipRow(text: "Use an existing photo")
                         TipRow(text: "Stand against a plain background")
                         TipRow(text: "Show your full body (head to feet)")
+                        TipRow(text: "Face the camera directly (not looking down or sideways)")
                         TipRow(text: "Wear fitted clothing")
                     }
                     .padding()
@@ -85,10 +87,7 @@ struct FullBodyPhotoSetupView: View {
                         .buttonStyle(PrimaryButtonStyle())
                         .padding(.horizontal, 40)
 
-                        Button(action: {
-                            photoSource = .camera
-                            showImagePicker = true
-                        }) {
+                        Button(action: checkCameraPermissionAndOpen) {
                             HStack {
                                 Image(systemName: "camera.fill")
                                 Text("Take New Photo")
@@ -103,6 +102,15 @@ struct FullBodyPhotoSetupView: View {
         }
         .navigationTitle("Try-On Setup")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button(action: { dismiss() }) {
+                    Image(systemName: "xmark")
+                        .font(.body)
+                        .foregroundColor(.primary)
+                }
+            }
+        }
         .sheet(isPresented: $showImagePicker) {
             FullBodyImagePicker(image: $selectedImage, sourceType: photoSource)
         }
@@ -130,6 +138,37 @@ struct FullBodyPhotoSetupView: View {
         HapticManager.shared.success()
 
         dismiss()
+    }
+
+    private func checkCameraPermissionAndOpen() {
+        let cameraAuthorizationStatus = AVCaptureDevice.authorizationStatus(for: .video)
+
+        switch cameraAuthorizationStatus {
+        case .authorized:
+            // Permission already granted, open camera
+            photoSource = .camera
+            showImagePicker = true
+
+        case .notDetermined:
+            // Request permission
+            AVCaptureDevice.requestAccess(for: .video) { granted in
+                DispatchQueue.main.async {
+                    if granted {
+                        self.photoSource = .camera
+                        self.showImagePicker = true
+                    } else {
+                        print("❌ Camera permission denied")
+                    }
+                }
+            }
+
+        case .denied, .restricted:
+            // Permission previously denied
+            print("❌ Camera access denied. User needs to enable in Settings.")
+
+        @unknown default:
+            break
+        }
     }
 }
 

@@ -142,7 +142,7 @@ struct PackSelectionView: View {
                                 .fontWeight(.semibold)
                         }
 
-                        Text("Your style guide is being custom-created with AI. You'll get a notification when it's ready — usually 2-3 minutes.")
+                        Text("Your style guide is being custom-created with AI. You'll get a notification when it's ready — up to 60 seconds.")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }

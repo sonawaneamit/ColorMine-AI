@@ -80,6 +80,13 @@ class ProfileHistory: ObservableObject {
         saveToStorage()
     }
 
+    /// Clear all history (complete wipe)
+    func clearAll() {
+        profiles.removeAll()
+        saveToStorage()
+        print("🗑️ Cleared all profile history")
+    }
+
     /// Get profiles sorted chronologically (most recent first)
     func sortedProfiles() -> [HistoricalProfile] {
         return profiles.sorted { $0.timestamp > $1.timestamp }

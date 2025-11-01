@@ -13,14 +13,14 @@ class FalAIService {
 
     private let apiKey = APIKeys.falAIKey
     private let tryOnEndpoint = "https://fal.run/fal-ai/fashn/tryon/v1.6"
-    private let videoEndpoint = "https://fal.run/fal-ai/veo3.1/fast/image-to-video"
+    private let videoEndpoint = "https://fal.run/fal-ai/veo3.1/fast/first-last-frame-to-video"
 
-    // Toggle between Gemini Nano Banana and fal.ai FASHN for try-on
-    // Gemini is being tested as an alternative due to better control and quality
+    // Using Gemini for virtual try-on generation (per user requirement)
+    // Gemini 2.5 Flash for try-on images, fal.ai Veo 3.1 for videos
     private let useGeminiForTryOn = true  // ✅ Using Gemini Nano Banana
 
-    // Use Gemini Veo 3.1 for video generation instead of fal.ai
-    private let useGeminiForVideo = true  // ✅ Using Gemini Veo 3.1
+    // Use fal.ai Veo 3.1 for video generation (Gemini not working)
+    private let useGeminiForVideo = false  // ✅ Using fal.ai Veo 3.1
 
     private init() {}
 
@@ -147,8 +147,8 @@ class FalAIService {
             )
         }
 
-        // Otherwise use fal.ai (original implementation)
-        print("🎬 Starting fal.ai video generation...")
+        // Otherwise use fal.ai Veo 3.1 (first-last-frame-to-video)
+        print("🎬 Starting fal.ai Veo 3.1 video generation...")
 
         // 1. Convert image to base64 data URL
         guard let imageData = tryOnImage.jpegData(compressionQuality: 0.9),
@@ -159,14 +159,15 @@ class FalAIService {
         let base64Image = imageData.base64EncodedString()
         let dataURL = "data:image/jpeg;base64,\(base64Image)"
 
-        // 2. Build request body
+        // 2. Build request body (using same image for first and last frame to animate from single image)
         let defaultPrompt = "The person slowly turns and poses naturally to showcase the outfit from different angles, smooth fashion model movement, professional photoshoot"
 
         let requestBody: [String: Any] = [
-            "image_url": dataURL,
+            "first_frame_url": dataURL,       // Start frame
+            "last_frame_url": dataURL,        // End frame (same as start for single image animation)
             "prompt": prompt ?? defaultPrompt,
             "aspect_ratio": "9:16",           // Portrait for mobile
-            "duration": "8s",                 // 8 seconds (API only supports 8s)
+            "duration": "8s",                 // 8 seconds
             "resolution": "720p",             // 720p for balance
             "generate_audio": false           // No audio to save cost (~$0.80)
         ]
@@ -183,7 +184,7 @@ class FalAIService {
         request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
         request.timeoutInterval = 120 // 2 minute timeout for video processing
 
-        print("📤 Sending video generation request to fal.ai...")
+        print("📤 Sending video generation request to fal.ai Veo 3.1...")
 
         // 4. Make API request
         let (data, response) = try await URLSession.shared.data(for: request)

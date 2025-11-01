@@ -69,7 +69,7 @@ struct PacksGenerationView: View {
                         .fontWeight(.bold)
 
                     VStack(spacing: 4) {
-                        Text("This may take 2-3 minutes...")
+                        Text("This may take up to 60 seconds...")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
 
